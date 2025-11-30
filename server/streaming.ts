@@ -60,11 +60,12 @@ class StreamingService {
       "-re",                          // Read input at native frame rate
       "-stream_loop", "-1",           // Loop indefinitely
       "-i", videoPath,                // Input file
-      "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,format=yuv420p",
+      "-vf", "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
       "-c:v", "libx264",              // Video codec
       "-preset", "veryfast",          // Encoding speed
       "-maxrate", "3000k",            // Max bitrate
       "-bufsize", "6000k",            // Buffer size
+      "-pix_fmt", "yuv420p",          // Pixel format
       "-g", "50",                     // Keyframe interval
       "-c:a", "aac",                  // Audio codec
       "-b:a", "160k",                 // Audio bitrate

@@ -172,6 +172,21 @@ export function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// Error log schema
+export const errorLogSchema = z.object({
+  id: z.string(),
+  timestamp: z.string(),
+  endpointId: z.string(),
+  endpointName: z.string(),
+  errorMessage: z.string(),
+  errorCode: z.number().optional(),
+  restartAttempt: z.number(),
+  maxRetries: z.number(),
+});
+
+export type ErrorLog = z.infer<typeof errorLogSchema>;
+
 // Storage limit constants
 export const MAX_STORAGE_BYTES = 5 * 1024 * 1024 * 1024; // 5GB
 export const MAX_VIDEOS = 4;
+export const MAX_RESTART_ATTEMPTS = 3;

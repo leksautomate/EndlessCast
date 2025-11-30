@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus } from "@shared/schema";
+import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, StreamStats } from "@shared/schema";
 import { MAX_STORAGE_BYTES, MAX_VIDEOS } from "@shared/schema";
 
 export interface IStorage {
@@ -21,6 +21,18 @@ export interface IStorage {
   setStreamingState(state: Partial<StreamingState>): Promise<StreamingState>;
   updateEndpointStatus(endpointId: string, status: Partial<StreamStatus>): Promise<void>;
   
+  // Playlist operations
+  getPlaylists(): Promise<Playlist[]>;
+  createPlaylist(playlist: InsertPlaylist): Promise<Playlist>;
+  updatePlaylist(id: string, playlist: Partial<InsertPlaylist>): Promise<Playlist | undefined>;
+  deletePlaylist(id: string): Promise<boolean>;
+  
+  // Scheduled stream operations
+  getScheduledStreams(): Promise<ScheduledStream[]>;
+  createScheduledStream(stream: InsertScheduledStream): Promise<ScheduledStream>;
+  updateScheduledStream(id: string, stream: Partial<InsertScheduledStream>): Promise<ScheduledStream | undefined>;
+  deleteScheduledStream(id: string): Promise<boolean>;
+  
   // Storage info
   getStorageInfo(): Promise<StorageInfo>;
 }
@@ -28,15 +40,22 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private videos: Map<string, Video>;
   private rtmpEndpoints: Map<string, RtmpEndpoint>;
+  private playlists: Map<string, Playlist>;
+  private scheduledStreams: Map<string, ScheduledStream>;
   private streamingState: StreamingState;
 
   constructor() {
     this.videos = new Map();
     this.rtmpEndpoints = new Map();
+    this.playlists = new Map();
+    this.scheduledStreams = new Map();
     this.streamingState = {
       isStreaming: false,
       selectedVideoId: null,
+      selectedPlaylistId: null,
+      playlistIndex: 0,
       endpointStatuses: [],
+      stats: [],
     };
   }
 

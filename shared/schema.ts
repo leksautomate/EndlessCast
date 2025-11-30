@@ -52,12 +52,57 @@ export const streamStatusSchema = z.object({
 
 export type StreamStatus = z.infer<typeof streamStatusSchema>;
 
+// Playlist schema
+export const playlistSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  videoIds: z.array(z.string()),
+  createdAt: z.string(),
+});
+
+export type Playlist = z.infer<typeof playlistSchema>;
+
+export const insertPlaylistSchema = playlistSchema.omit({ id: true, createdAt: true });
+export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
+
+// Stream statistics
+export const streamStatsSchema = z.object({
+  id: z.string(),
+  streamStartTime: z.string(),
+  streamEndTime: z.string().optional(),
+  durationSeconds: z.number(),
+  restartCount: z.number(),
+  endpointId: z.string(),
+});
+
+export type StreamStats = z.infer<typeof streamStatsSchema>;
+
+// Scheduled stream
+export const scheduledStreamSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  videoIds: z.array(z.string()),
+  rtmpEndpointIds: z.array(z.string()),
+  scheduledStartTime: z.string(),
+  recurring: z.enum(["once", "daily", "weekly"]).optional(),
+  enabled: z.boolean(),
+  createdAt: z.string(),
+});
+
+export type ScheduledStream = z.infer<typeof scheduledStreamSchema>;
+
+export const insertScheduledStreamSchema = scheduledStreamSchema.omit({ id: true, createdAt: true });
+export type InsertScheduledStream = z.infer<typeof insertScheduledStreamSchema>;
+
 // Global streaming state
 export const streamingStateSchema = z.object({
   isStreaming: z.boolean(),
   selectedVideoId: z.string().nullable(),
+  selectedPlaylistId: z.string().nullable(),
+  playlistIndex: z.number(),
   startedAt: z.string().optional(),
   endpointStatuses: z.array(streamStatusSchema),
+  stats: z.array(streamStatsSchema),
 });
 
 export type StreamingState = z.infer<typeof streamingStateSchema>;

@@ -8,11 +8,13 @@ import { RtmpPanel } from "@/components/rtmp-panel";
 import { StreamingControls } from "@/components/streaming-controls";
 import { StatusDashboard } from "@/components/status-dashboard";
 import { StorageIndicator } from "@/components/storage-indicator";
-import { Radio, Moon, Sun } from "lucide-react";
+import { Radio, Moon, Sun, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -212,6 +214,14 @@ export default function Dashboard() {
           {storageInfo && (
             <StorageIndicator storageInfo={storageInfo} />
           )}
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={() => setLocation("/settings")}
+            data-testid="button-settings"
+          >
+            <SettingsIcon className="w-4 h-4" />
+          </Button>
           <Button 
             size="icon" 
             variant="ghost" 

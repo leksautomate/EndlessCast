@@ -1,5 +1,6 @@
 import { spawn, ChildProcess } from "child_process";
 import { storage } from "./storage";
+import { emailService } from "./email";
 import type { RtmpEndpoint } from "@shared/schema";
 import path from "path";
 
@@ -100,6 +101,17 @@ class StreamingService {
         status: "error",
         errorMessage: error.message,
       });
+      
+      // Send email alert if enabled
+      const emailSettings = await storage.getEmailSettings();
+      if (emailSettings?.enabled && emailSettings?.notifyOnError) {
+        await emailService.sendErrorAlert(
+          emailSettings,
+          endpoint.name,
+          error.message,
+          1
+        );
+      }
     });
 
     ffmpegProcess.on("exit", async (code) => {
@@ -107,12 +119,24 @@ class StreamingService {
       this.processes.delete(endpoint.id);
       
       const state = await storage.getStreamingState();
-      if (state.isStreaming) {
-        // Stream ended unexpectedly
+      if (state.isStreaming && code !== 0) {
+        // Stream ended unexpectedly with error
+        const errorMsg = `Process exited with code ${code}`;
         await storage.updateEndpointStatus(endpoint.id, {
           status: "error",
-          errorMessage: `Process exited with code ${code}`,
+          errorMessage: errorMsg,
         });
+        
+        // Send email alert if enabled
+        const emailSettings = await storage.getEmailSettings();
+        if (emailSettings?.enabled && emailSettings?.notifyOnError) {
+          await emailService.sendErrorAlert(
+            emailSettings,
+            endpoint.name,
+            errorMsg,
+            1
+          );
+        }
       } else {
         await storage.updateEndpointStatus(endpoint.id, {
           status: "stopped",

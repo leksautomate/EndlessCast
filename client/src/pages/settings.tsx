@@ -4,12 +4,13 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Mail, AlertCircle } from "lucide-react";
 import { insertEmailSettingsSchema, type InsertEmailSettings } from "@shared/schema";
 
 export default function Settings() {
@@ -176,18 +177,15 @@ export default function Settings() {
                       control={form.control}
                       name="notifyOnError"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between space-y-0">
-                          <FormLabel>Notify on Stream Errors</FormLabel>
+                        <FormItem className="flex items-center gap-3 space-y-0">
                           <FormControl>
-                            <input
-                              {...field}
-                              type="checkbox"
+                            <Checkbox
                               checked={field.value}
-                              onChange={(e) => field.onChange(e.target.checked)}
-                              className="w-4 h-4"
+                              onCheckedChange={field.onChange}
                               data-testid="checkbox-notify-errors"
                             />
                           </FormControl>
+                          <FormLabel className="cursor-pointer">Notify on Stream Errors</FormLabel>
                         </FormItem>
                       )}
                     />
@@ -196,18 +194,15 @@ export default function Settings() {
                       control={form.control}
                       name="enabled"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between space-y-0">
-                          <FormLabel>Enable Email Notifications</FormLabel>
+                        <FormItem className="flex items-center gap-3 space-y-0">
                           <FormControl>
-                            <input
-                              {...field}
-                              type="checkbox"
+                            <Checkbox
                               checked={field.value}
-                              onChange={(e) => field.onChange(e.target.checked)}
-                              className="w-4 h-4"
+                              onCheckedChange={field.onChange}
                               data-testid="checkbox-enable-email"
                             />
                           </FormControl>
+                          <FormLabel className="cursor-pointer">Enable Email Notifications</FormLabel>
                         </FormItem>
                       )}
                     />

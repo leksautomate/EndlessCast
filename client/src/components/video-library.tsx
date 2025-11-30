@@ -98,7 +98,7 @@ export function VideoLibrary({
                 <div>
                   <p className="text-sm font-medium">Drop video here or click to upload</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    MP4, MOV, MKV up to 5GB total
+                    MP4, MOV, MKV up to 10GB total
                   </p>
                 </div>
               </div>

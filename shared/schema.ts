@@ -200,6 +200,6 @@ export const insertEmailSettingsSchema = emailSettingsSchema;
 export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
 
 // Storage limit constants
-export const MAX_STORAGE_BYTES = 5 * 1024 * 1024 * 1024; // 5GB
+export const MAX_STORAGE_BYTES = 10 * 1024 * 1024 * 1024; // 10GB
 export const MAX_VIDEOS = 4;
 export const MAX_RESTART_ATTEMPTS = 3;

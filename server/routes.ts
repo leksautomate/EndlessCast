@@ -7,7 +7,8 @@ import { promisify } from "util";
 import { exec } from "child_process";
 import { storage } from "./storage";
 import { streamingService } from "./streaming";
-import { insertRtmpEndpointSchema, MAX_STORAGE_BYTES, MAX_VIDEOS } from "@shared/schema";
+import { emailService } from "./email";
+import { insertRtmpEndpointSchema, MAX_STORAGE_BYTES, MAX_VIDEOS, insertEmailSettingsSchema } from "@shared/schema";
 
 const execAsync = promisify(exec);
 
@@ -291,6 +292,59 @@ export async function registerRoutes(
       res.json(info);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch storage info" });
+    }
+  });
+
+  // ============ EMAIL SETTINGS ROUTES ============
+
+  // Get email settings
+  app.get("/api/email-settings", async (req: Request, res: Response) => {
+    try {
+      const settings = await storage.getEmailSettings();
+      // Return settings without the password for security
+      if (settings) {
+        const safe = { ...settings, gmailAppPassword: settings.gmailAppPassword ? "****" : "" };
+        res.json(safe);
+      } else {
+        res.json(null);
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch email settings" });
+    }
+  });
+
+  // Update email settings
+  app.post("/api/email-settings", async (req: Request, res: Response) => {
+    try {
+      const parsed = insertEmailSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid email settings" });
+      }
+
+      const settings = await storage.updateEmailSettings(parsed.data);
+      res.json({ message: "Email settings updated" });
+    } catch (error: any) {
+      console.error("Email settings error:", error);
+      res.status(500).json({ message: error.message || "Failed to update email settings" });
+    }
+  });
+
+  // Test email connection
+  app.post("/api/email-settings/test", async (req: Request, res: Response) => {
+    try {
+      const settings = await storage.getEmailSettings();
+      if (!settings) {
+        return res.status(400).json({ message: "No email settings configured" });
+      }
+
+      const success = await emailService.testConnection(settings);
+      if (success) {
+        res.json({ message: "Gmail connection successful" });
+      } else {
+        res.status(400).json({ message: "Failed to connect to Gmail. Check your credentials." });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Email test failed" });
     }
   });
 

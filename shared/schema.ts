@@ -186,6 +186,19 @@ export const errorLogSchema = z.object({
 
 export type ErrorLog = z.infer<typeof errorLogSchema>;
 
+// Email settings schema
+export const emailSettingsSchema = z.object({
+  enabled: z.boolean(),
+  gmailAddress: z.string().email(),
+  gmailAppPassword: z.string(),
+  notifyOnError: z.boolean(),
+});
+
+export type EmailSettings = z.infer<typeof emailSettingsSchema>;
+
+export const insertEmailSettingsSchema = emailSettingsSchema;
+export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
+
 // Storage limit constants
 export const MAX_STORAGE_BYTES = 5 * 1024 * 1024 * 1024; // 5GB
 export const MAX_VIDEOS = 4;

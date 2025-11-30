@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, StreamStats } from "@shared/schema";
+import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, StreamStats, EmailSettings, InsertEmailSettings } from "@shared/schema";
 import { MAX_STORAGE_BYTES, MAX_VIDEOS } from "@shared/schema";
 
 export interface IStorage {
@@ -33,6 +33,10 @@ export interface IStorage {
   updateScheduledStream(id: string, stream: Partial<InsertScheduledStream>): Promise<ScheduledStream | undefined>;
   deleteScheduledStream(id: string): Promise<boolean>;
   
+  // Email settings operations
+  getEmailSettings(): Promise<EmailSettings | null>;
+  updateEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings>;
+  
   // Storage info
   getStorageInfo(): Promise<StorageInfo>;
 }
@@ -43,12 +47,14 @@ export class MemStorage implements IStorage {
   private playlists: Map<string, Playlist>;
   private scheduledStreams: Map<string, ScheduledStream>;
   private streamingState: StreamingState;
+  private emailSettings: EmailSettings | null;
 
   constructor() {
     this.videos = new Map();
     this.rtmpEndpoints = new Map();
     this.playlists = new Map();
     this.scheduledStreams = new Map();
+    this.emailSettings = null;
     this.streamingState = {
       isStreaming: false,
       selectedVideoId: null,
@@ -191,6 +197,16 @@ export class MemStorage implements IStorage {
 
   async deleteScheduledStream(id: string): Promise<boolean> {
     return this.scheduledStreams.delete(id);
+  }
+
+  // Email settings operations
+  async getEmailSettings(): Promise<EmailSettings | null> {
+    return this.emailSettings;
+  }
+
+  async updateEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings> {
+    this.emailSettings = settings;
+    return this.emailSettings;
   }
 
   // Storage info

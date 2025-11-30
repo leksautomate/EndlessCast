@@ -1,8 +1,8 @@
-# Loop Streamer - 24/7 Multi-Platform Broadcasting
+# EndlessCast - 24/7 Multi-Platform Broadcasting
 
 ## Overview
 
-Loop Streamer is a web application that enables users to upload videos and stream them continuously (24/7) to multiple RTMP endpoints simultaneously. The platform supports major streaming services like YouTube Live, Facebook Live, Rumble, Odysee, and Twitter/X, as well as custom RTMP destinations. Users can manage a video library (up to 5GB storage), configure RTMP endpoints, and control streaming with real-time status monitoring.
+EndlessCast is a web application that enables users to upload videos and stream them continuously (24/7) to multiple RTMP endpoints simultaneously. The platform supports major streaming services like YouTube Live, Facebook Live, Rumble, Odysee, and Twitter/X, as well as custom RTMP destinations. Users can manage a video library (up to 5GB storage), configure RTMP endpoints, and control streaming with real-time status monitoring.
 
 ## User Preferences
 

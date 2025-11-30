@@ -202,7 +202,7 @@ export default function Dashboard() {
           </div>
           <div>
             <h1 className="text-lg font-semibold leading-tight" data-testid="text-app-title">
-              Loop Streamer
+              EndlessCast
             </h1>
             <p className="text-xs text-muted-foreground">24/7 Multi-Platform Broadcasting</p>
           </div>

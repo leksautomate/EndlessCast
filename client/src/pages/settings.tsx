@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, AlertCircle } from "lucide-react";
+import { Mail, AlertCircle, ArrowLeft } from "lucide-react";
 import { insertEmailSettingsSchema, type InsertEmailSettings } from "@shared/schema";
 
 export default function Settings() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [testingConnection, setTestingConnection] = useState(false);
 
   // Fetch email settings
@@ -96,9 +98,19 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-2xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="heading-settings">Settings</h1>
-          <p className="text-muted-foreground mt-1">Configure your EndlessCast preferences</p>
+        <div className="flex items-center gap-4">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setLocation("/")}
+            data-testid="button-back"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold" data-testid="heading-settings">Settings</h1>
+            <p className="text-muted-foreground mt-1">Configure your EndlessCast preferences</p>
+          </div>
         </div>
 
         <Tabs defaultValue="email" className="w-full">

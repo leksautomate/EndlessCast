@@ -61,35 +61,41 @@ export default function Settings() {
     },
   });
 
-  // Test connection mutation
-  const testConnectionMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/email-settings/test", {});
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Gmail connection successful!",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Connection Failed",
-        description: error.message || "Failed to connect to Gmail",
-        variant: "destructive",
-      });
-    },
-  });
-
   const onSubmit = async (data: InsertEmailSettings) => {
     updateEmailMutation.mutate(data);
   };
 
   const handleTestConnection = async () => {
+    const formValues = form.getValues();
+    if (!formValues.gmailAddress || !formValues.gmailAppPassword) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter Gmail address and app password",
+        variant: "destructive",
+      });
+      return;
+    }
     setTestingConnection(true);
     try {
-      await testConnectionMutation.mutateAsync();
+      const res = await fetch("/api/email-settings/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formValues),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Connection failed");
+      }
+      toast({
+        title: "Success",
+        description: "Gmail connection successful!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Connection Failed",
+        description: error.message || "Failed to connect to Gmail",
+        variant: "destructive",
+      });
     } finally {
       setTestingConnection(false);
     }

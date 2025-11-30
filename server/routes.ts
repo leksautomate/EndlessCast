@@ -332,12 +332,12 @@ export async function registerRoutes(
   // Test email connection
   app.post("/api/email-settings/test", async (req: Request, res: Response) => {
     try {
-      const settings = await storage.getEmailSettings();
-      if (!settings) {
-        return res.status(400).json({ message: "No email settings configured" });
+      const parsed = insertEmailSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid email settings" });
       }
 
-      const success = await emailService.testConnection(settings);
+      const success = await emailService.testConnection(parsed.data);
       if (success) {
         res.json({ message: "Gmail connection successful" });
       } else {

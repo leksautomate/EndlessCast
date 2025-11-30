@@ -141,6 +141,58 @@ export class MemStorage implements IStorage {
     }
   }
 
+  // Playlist operations
+  async getPlaylists(): Promise<Playlist[]> {
+    return Array.from(this.playlists.values());
+  }
+
+  async createPlaylist(playlist: InsertPlaylist): Promise<Playlist> {
+    const id = randomUUID();
+    const newPlaylist: Playlist = { ...playlist, id, createdAt: new Date().toISOString() };
+    this.playlists.set(id, newPlaylist);
+    return newPlaylist;
+  }
+
+  async updatePlaylist(id: string, data: Partial<InsertPlaylist>): Promise<Playlist | undefined> {
+    const existing = this.playlists.get(id);
+    if (!existing) return undefined;
+    const updated: Playlist = { ...existing, ...data };
+    this.playlists.set(id, updated);
+    return updated;
+  }
+
+  async deletePlaylist(id: string): Promise<boolean> {
+    if (this.streamingState.selectedPlaylistId === id) {
+      this.streamingState.selectedPlaylistId = null;
+      this.streamingState.playlistIndex = 0;
+    }
+    return this.playlists.delete(id);
+  }
+
+  // Scheduled stream operations
+  async getScheduledStreams(): Promise<ScheduledStream[]> {
+    return Array.from(this.scheduledStreams.values());
+  }
+
+  async createScheduledStream(stream: InsertScheduledStream): Promise<ScheduledStream> {
+    const id = randomUUID();
+    const newStream: ScheduledStream = { ...stream, id, createdAt: new Date().toISOString() };
+    this.scheduledStreams.set(id, newStream);
+    return newStream;
+  }
+
+  async updateScheduledStream(id: string, data: Partial<InsertScheduledStream>): Promise<ScheduledStream | undefined> {
+    const existing = this.scheduledStreams.get(id);
+    if (!existing) return undefined;
+    const updated: ScheduledStream = { ...existing, ...data };
+    this.scheduledStreams.set(id, updated);
+    return updated;
+  }
+
+  async deleteScheduledStream(id: string): Promise<boolean> {
+    return this.scheduledStreams.delete(id);
+  }
+
   // Storage info
   async getStorageInfo(): Promise<StorageInfo> {
     const videos = await this.getVideos();

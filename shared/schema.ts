@@ -222,3 +222,52 @@ export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
 export const MAX_STORAGE_BYTES = 50 * 1024 * 1024 * 1024; // 50GB
 export const MAX_VIDEOS = 4;
 export const MAX_RESTART_ATTEMPTS = 3;
+
+// Theme settings schema
+export const themeColors = [
+  "matrix", "cyber", "neon", "blood", "ocean", "amber", "violet", "custom"
+] as const;
+
+export type ThemeColor = typeof themeColors[number];
+
+export const themeSettingsSchema = z.object({
+  colorTheme: z.enum(themeColors).default("matrix"),
+  customPrimary: z.string().optional(),
+  customAccent: z.string().optional(),
+  customBackground: z.string().optional(),
+  terminalFont: z.boolean().default(true),
+  scanlines: z.boolean().default(false),
+  glowEffects: z.boolean().default(true),
+});
+
+export type ThemeSettings = z.infer<typeof themeSettingsSchema>;
+
+export const insertThemeSettingsSchema = themeSettingsSchema;
+export type InsertThemeSettings = z.infer<typeof insertThemeSettingsSchema>;
+
+// Telegram settings schema
+export const telegramSettingsSchema = z.object({
+  enabled: z.boolean(),
+  botToken: z.string(),
+  chatId: z.string(),
+  notifyOnStart: z.boolean().default(true),
+  notifyOnStop: z.boolean().default(true),
+  notifyOnError: z.boolean().default(true),
+});
+
+export type TelegramSettings = z.infer<typeof telegramSettingsSchema>;
+
+export const insertTelegramSettingsSchema = telegramSettingsSchema;
+export type InsertTelegramSettings = z.infer<typeof insertTelegramSettingsSchema>;
+
+// Theme color presets
+export const themePresets: Record<ThemeColor, { primary: string; accent: string; bg: string; name: string }> = {
+  matrix: { primary: "#00ff41", accent: "#008f11", bg: "#0d0d0d", name: "Matrix Green" },
+  cyber: { primary: "#00d4ff", accent: "#0099cc", bg: "#0a0a0f", name: "Cyber Blue" },
+  neon: { primary: "#ff00ff", accent: "#cc00cc", bg: "#0f0a0f", name: "Neon Pink" },
+  blood: { primary: "#ff3333", accent: "#cc0000", bg: "#0f0a0a", name: "Blood Red" },
+  ocean: { primary: "#00ffcc", accent: "#00ccaa", bg: "#0a0f0f", name: "Ocean Teal" },
+  amber: { primary: "#ffaa00", accent: "#cc8800", bg: "#0f0d0a", name: "Amber Gold" },
+  violet: { primary: "#aa66ff", accent: "#8844dd", bg: "#0d0a0f", name: "Violet Purple" },
+  custom: { primary: "#00ff41", accent: "#008f11", bg: "#0d0d0d", name: "Custom" },
+};

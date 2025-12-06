@@ -1,6 +1,7 @@
 import { spawn, ChildProcess } from "child_process";
 import { storage } from "./storage";
 import { emailService } from "./email";
+import { telegramService } from "./telegram";
 import type { RtmpEndpoint } from "@shared/schema";
 import path from "path";
 
@@ -50,6 +51,9 @@ class StreamingService {
     for (const endpoint of enabledEndpoints) {
       await this.startEndpointStream(video, endpoint, limit);
     }
+
+    // Send Telegram notification
+    await telegramService.notifyStreamStart(enabledEndpoints.map(e => e.name));
 
     // Start monitoring
     this.startMonitoring();
@@ -135,6 +139,9 @@ class StreamingService {
           1
         );
       }
+
+      // Send Telegram alert
+      await telegramService.notifyStreamError(endpoint.name, error.message);
     });
 
     ffmpegProcess.on("exit", async (code) => {
@@ -161,6 +168,9 @@ class StreamingService {
               1
             );
           }
+
+          // Send Telegram alert
+          await telegramService.notifyStreamError(endpoint.name, errorMsg);
         } else {
           // Clean exit (e.g. duration reached)
           await storage.updateEndpointStatus(endpoint.id, {
@@ -218,6 +228,9 @@ class StreamingService {
       isStreaming: false,
       startedAt: undefined,
     });
+
+    // Send Telegram notification
+    await telegramService.notifyStreamStop();
   }
 
   private startMonitoring(): void {

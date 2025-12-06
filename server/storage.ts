@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, EmailSettings, InsertEmailSettings } from "@shared/schema";
+import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, EmailSettings, InsertEmailSettings, ThemeSettings, InsertThemeSettings, TelegramSettings, InsertTelegramSettings } from "@shared/schema";
 import { MAX_STORAGE_BYTES, MAX_VIDEOS } from "@shared/schema";
 
 export interface IStorage {
@@ -37,6 +37,14 @@ export interface IStorage {
   getEmailSettings(): Promise<EmailSettings | null>;
   updateEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings>;
 
+  // Theme settings operations
+  getThemeSettings(): Promise<ThemeSettings | null>;
+  updateThemeSettings(settings: InsertThemeSettings): Promise<ThemeSettings>;
+
+  // Telegram settings operations
+  getTelegramSettings(): Promise<TelegramSettings | null>;
+  updateTelegramSettings(settings: InsertTelegramSettings): Promise<TelegramSettings>;
+
   // Storage info
   getStorageInfo(): Promise<StorageInfo>;
 }
@@ -48,6 +56,8 @@ export class MemStorage implements IStorage {
   private scheduledStreams: Map<string, ScheduledStream>;
   private streamingState: StreamingState;
   private emailSettings: EmailSettings | null;
+  private themeSettings: ThemeSettings | null;
+  private telegramSettings: TelegramSettings | null;
 
   constructor() {
     this.videos = new Map();
@@ -55,6 +65,8 @@ export class MemStorage implements IStorage {
     this.playlists = new Map();
     this.scheduledStreams = new Map();
     this.emailSettings = null;
+    this.themeSettings = null;
+    this.telegramSettings = null;
     this.streamingState = {
       isStreaming: false,
       selectedVideoId: null,
@@ -207,6 +219,26 @@ export class MemStorage implements IStorage {
   async updateEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings> {
     this.emailSettings = settings;
     return this.emailSettings;
+  }
+
+  // Theme settings operations
+  async getThemeSettings(): Promise<ThemeSettings | null> {
+    return this.themeSettings;
+  }
+
+  async updateThemeSettings(settings: InsertThemeSettings): Promise<ThemeSettings> {
+    this.themeSettings = settings;
+    return this.themeSettings;
+  }
+
+  // Telegram settings operations
+  async getTelegramSettings(): Promise<TelegramSettings | null> {
+    return this.telegramSettings;
+  }
+
+  async updateTelegramSettings(settings: InsertTelegramSettings): Promise<TelegramSettings> {
+    this.telegramSettings = settings;
+    return this.telegramSettings;
   }
 
   // Storage info

@@ -9,7 +9,8 @@ import { storage } from "./storage";
 import { streamingService } from "./streaming";
 import { emailService } from "./email";
 import { authService } from "./auth";
-import { insertRtmpEndpointSchema, MAX_STORAGE_BYTES, MAX_VIDEOS, insertEmailSettingsSchema } from "@shared/schema";
+import { telegramService } from "./telegram";
+import { insertRtmpEndpointSchema, MAX_STORAGE_BYTES, MAX_VIDEOS, insertEmailSettingsSchema, insertThemeSettingsSchema, insertTelegramSettingsSchema } from "@shared/schema";
 
 const execAsync = promisify(exec);
 
@@ -412,6 +413,86 @@ export async function registerRoutes(
       }
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Email test failed" });
+    }
+  });
+
+  // ============ THEME SETTINGS ROUTES ============
+
+  // Get theme settings
+  app.get("/api/theme-settings", async (_req: Request, res: Response) => {
+    try {
+      const settings = await storage.getThemeSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch theme settings" });
+    }
+  });
+
+  // Update theme settings
+  app.post("/api/theme-settings", async (req: Request, res: Response) => {
+    try {
+      const parsed = insertThemeSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid theme settings" });
+      }
+
+      await storage.updateThemeSettings(parsed.data);
+      res.json({ message: "Theme settings updated" });
+    } catch (error: any) {
+      console.error("Theme settings error:", error);
+      res.status(500).json({ message: error.message || "Failed to update theme settings" });
+    }
+  });
+
+  // ============ TELEGRAM SETTINGS ROUTES ============
+
+  // Get telegram settings
+  app.get("/api/telegram-settings", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const settings = await storage.getTelegramSettings();
+      if (settings) {
+        const safe = { ...settings, botToken: settings.botToken ? "****" : "" };
+        res.json(safe);
+      } else {
+        res.json(null);
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch telegram settings" });
+    }
+  });
+
+  // Update telegram settings
+  app.post("/api/telegram-settings", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const parsed = insertTelegramSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid telegram settings" });
+      }
+
+      await storage.updateTelegramSettings(parsed.data);
+      res.json({ message: "Telegram settings updated" });
+    } catch (error: any) {
+      console.error("Telegram settings error:", error);
+      res.status(500).json({ message: error.message || "Failed to update telegram settings" });
+    }
+  });
+
+  // Test telegram connection
+  app.post("/api/telegram-settings/test", async (req: Request, res: Response) => {
+    try {
+      const parsed = insertTelegramSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid telegram settings" });
+      }
+
+      const success = await telegramService.testConnection(parsed.data);
+      if (success) {
+        res.json({ message: "Telegram connection successful" });
+      } else {
+        res.status(400).json({ message: "Failed to connect to Telegram. Check your bot token and chat ID." });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Telegram test failed" });
     }
   });
 

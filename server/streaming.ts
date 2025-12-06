@@ -13,9 +13,9 @@ class StreamingService {
   private processes: Map<string, StreamProcess> = new Map();
   private monitorInterval: NodeJS.Timeout | null = null;
 
-  async startStreaming(): Promise<void> {
+  async startStreaming(durationSeconds?: number): Promise<void> {
     const state = await storage.getStreamingState();
-    
+
     if (!state.selectedVideoId) {
       throw new Error("No video selected");
     }
@@ -27,7 +27,7 @@ class StreamingService {
 
     const endpoints = await storage.getRtmpEndpoints();
     const enabledEndpoints = endpoints.filter(e => e.enabled);
-    
+
     if (enabledEndpoints.length === 0) {
       throw new Error("No RTMP endpoints configured");
     }
@@ -42,17 +42,40 @@ class StreamingService {
       })),
     });
 
+    // Default duration to 11 hours 55 minutes if not provided
+    // 11 * 3600 + 55 * 60 = 39600 + 3300 = 42900 seconds
+    const limit = durationSeconds || 42900;
+
     // Start streaming to each endpoint
     for (const endpoint of enabledEndpoints) {
-      await this.startEndpointStream(video.filename, endpoint);
+      await this.startEndpointStream(video, endpoint, limit);
     }
 
     // Start monitoring
     this.startMonitoring();
   }
 
-  private async startEndpointStream(videoFilename: string, endpoint: RtmpEndpoint): Promise<void> {
-    const videoPath = path.join(process.cwd(), "uploads", videoFilename);
+  private async startEndpointStream(video: any, endpoint: RtmpEndpoint, durationSeconds: number): Promise<void> {
+    let videoSource: string;
+
+    // Prefer MinIO URL if available
+    if (video.minioUrl) {
+      try {
+        const { minioStorage } = await import("./minio");
+        const minioKey = `videos/${video.filename}`;
+        // Generate presigned URL valid for duration + 1 hour buffer
+        videoSource = await minioStorage.getPresignedUrl(minioKey, durationSeconds + 3600);
+        console.log(`Streaming from MinIO: ${video.filename}`);
+      } catch (error) {
+        console.error("Failed to get MinIO presigned URL, falling back to local:", error);
+        videoSource = path.join(process.cwd(), "uploads", video.filename);
+      }
+    } else {
+      // Use local file
+      videoSource = path.join(process.cwd(), "uploads", video.filename);
+      console.log(`Streaming from local storage: ${videoSource}`);
+    }
+
     const rtmpFullUrl = `${endpoint.rtmpUrl}/${endpoint.streamKey}`;
 
     // FFmpeg command to loop video and stream to RTMP
@@ -60,14 +83,16 @@ class StreamingService {
     const ffmpegArgs = [
       "-re",                          // Read input at native frame rate
       "-stream_loop", "-1",           // Loop indefinitely
-      "-i", videoPath,                // Input file
+      "-i", videoSource,              // Input file (local or MinIO URL)
+      "-t", durationSeconds.toString(), // Stop writing output after duration
       "-vf", "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
+      "-r", "30",                     // Force 30 fps output (YouTube minimum)
       "-c:v", "libx264",              // Video codec
-      "-preset", "veryfast",          // Encoding speed
+      "-preset", "veryfast",          // Encoding speed (RAM-efficient)
       "-maxrate", "3000k",            // Max bitrate
       "-bufsize", "6000k",            // Buffer size
       "-pix_fmt", "yuv420p",          // Pixel format
-      "-g", "50",                     // Keyframe interval
+      "-g", "60",                     // Keyframe interval (2 seconds at 30fps)
       "-c:a", "aac",                  // Audio codec
       "-b:a", "160k",                 // Audio bitrate
       "-ar", "44100",                 // Audio sample rate
@@ -75,7 +100,7 @@ class StreamingService {
       rtmpFullUrl                     // RTMP destination
     ];
 
-    console.log(`Starting stream to ${endpoint.name}: ${endpoint.rtmpUrl}`);
+    console.log(`Starting stream to ${endpoint.name}: ${endpoint.rtmpUrl} for ${durationSeconds} seconds`);
 
     const ffmpegProcess = spawn("ffmpeg", ffmpegArgs);
 
@@ -83,14 +108,28 @@ class StreamingService {
       const output = data.toString();
       // Parse FFmpeg output for stats
       if (output.includes("frame=")) {
-        // Extract bitrate and fps if available
+        // Extract metrics from FFmpeg output
         const bitrateMatch = output.match(/bitrate=\s*([\d.]+)kbits/);
         const fpsMatch = output.match(/fps=\s*([\d.]+)/);
-        
+        const frameMatch = output.match(/frame=\s*(\d+)/);
+        const dropMatch = output.match(/drop=\s*(\d+)/);
+
+        const totalFrames = frameMatch ? parseInt(frameMatch[1]) : 0;
+        const droppedFrames = dropMatch ? parseInt(dropMatch[1]) : 0;
+
+        // Calculate buffer health (100% - drop percentage)
+        const dropPercentage = totalFrames > 0 ? (droppedFrames / totalFrames) * 100 : 0;
+        const bufferHealth = Math.max(0, Math.min(100, 100 - dropPercentage));
+
         storage.updateEndpointStatus(endpoint.id, {
           status: "live",
           bitrate: bitrateMatch ? parseFloat(bitrateMatch[1]) * 1000 : undefined,
           fps: fpsMatch ? parseFloat(fpsMatch[1]) : undefined,
+          healthMetrics: {
+            droppedFrames,
+            totalFrames,
+            bufferHealth: Math.round(bufferHealth),
+          },
         });
       }
     });
@@ -101,7 +140,7 @@ class StreamingService {
         status: "error",
         errorMessage: error.message,
       });
-      
+
       // Send email alert if enabled
       const emailSettings = await storage.getEmailSettings();
       if (emailSettings?.enabled && emailSettings?.notifyOnError) {
@@ -117,25 +156,32 @@ class StreamingService {
     ffmpegProcess.on("exit", async (code) => {
       console.log(`Stream to ${endpoint.name} exited with code ${code}`);
       this.processes.delete(endpoint.id);
-      
+
       const state = await storage.getStreamingState();
-      if (state.isStreaming && code !== 0) {
-        // Stream ended unexpectedly with error
-        const errorMsg = `Process exited with code ${code}`;
-        await storage.updateEndpointStatus(endpoint.id, {
-          status: "error",
-          errorMessage: errorMsg,
-        });
-        
-        // Send email alert if enabled
-        const emailSettings = await storage.getEmailSettings();
-        if (emailSettings?.enabled && emailSettings?.notifyOnError) {
-          await emailService.sendErrorAlert(
-            emailSettings,
-            endpoint.name,
-            errorMsg,
-            1
-          );
+      if (state.isStreaming) {
+        if (code !== 0 && code !== 255) { // 255 is often returned when killed via signal or -t
+          // Stream ended unexpectedly with error
+          const errorMsg = `Process exited with code ${code}`;
+          await storage.updateEndpointStatus(endpoint.id, {
+            status: "error",
+            errorMessage: errorMsg,
+          });
+
+          // Send email alert if enabled
+          const emailSettings = await storage.getEmailSettings();
+          if (emailSettings?.enabled && emailSettings?.notifyOnError) {
+            await emailService.sendErrorAlert(
+              emailSettings,
+              endpoint.name,
+              errorMsg,
+              1
+            );
+          }
+        } else {
+          // Clean exit (e.g. duration reached)
+          await storage.updateEndpointStatus(endpoint.id, {
+            status: "stopped",
+          });
         }
       } else {
         await storage.updateEndpointStatus(endpoint.id, {
@@ -208,7 +254,7 @@ class StreamingService {
       // Check if all processes are dead
       let allDead = true;
       const entries = Array.from(this.processes.entries());
-      for (const [id, streamProc] of entries) {
+      for (const [, streamProc] of entries) {
         if (!streamProc.ffmpegProcess.killed) {
           allDead = false;
         }

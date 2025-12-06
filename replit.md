@@ -2,7 +2,7 @@
 
 ## Overview
 
-EndlessCast is a web application that enables users to upload videos and stream them continuously (24/7) to multiple RTMP endpoints simultaneously. The platform supports major streaming services like YouTube Live, Facebook Live, Rumble, Odysee, and Twitter/X, as well as custom RTMP destinations. Users can manage a video library (up to 5GB storage), configure RTMP endpoints, and control streaming with real-time status monitoring.
+EndlessCast is a web application that enables users to upload videos and stream them continuously (24/7) to multiple RTMP endpoints simultaneously. The platform supports major streaming services like YouTube Live, Facebook Live, Rumble, Odysee, and Twitter/X, as well as custom RTMP destinations. Users can manage a video library (up to 50GB storage with 4 videos max), configure RTMP endpoints, and control streaming with real-time status monitoring, email notifications, and CDN integration.
 
 ## User Preferences
 
@@ -30,14 +30,18 @@ Preferred communication style: Simple, everyday language.
 **State Management:**
 - React Query for server-side data with 2-second polling intervals for streaming state
 - Local React state for UI interactions
+- Session-based authentication with localStorage
 - No global state management library (Redux/Zustand) - keeps architecture simple
 
 **Key UI Components:**
+- `LoginPage`: Password-based authentication with session management
 - `VideoLibrary`: Manages video uploads, display, selection, and deletion
 - `RtmpPanel`: Configures RTMP endpoints with platform-specific presets
-- `StreamingControls`: Central control panel for starting/stopping streams
+- `StreamingControls`: Central control panel for starting/stopping streams with duration settings
 - `StatusDashboard`: Real-time monitoring of endpoint connection statuses
-- `StorageIndicator`: Shows storage usage against 5GB limit
+- `StreamHealthMonitor`: Real-time stream health metrics (bitrate, FPS, dropped frames, buffer health)
+- `StorageIndicator`: Shows storage usage against 50GB limit
+- `Settings`: Email notification configuration with Gmail integration
 
 ### Backend Architecture
 
@@ -46,13 +50,21 @@ Preferred communication style: Simple, everyday language.
 - In-memory storage implementation (MemStorage class implementing IStorage interface)
 - Node.js child processes for FFmpeg streaming
 - Multer for multipart file uploads
+- Bcrypt for password hashing
+- Nodemailer for email notifications
+
+**Authentication System:**
+- Session-based authentication using in-memory session storage
+- Password hashing with bcrypt (default: "admin")
+- Session ID sent via `x-session-id` header
+- Protected API routes using `requireAuth` middleware
 
 **Storage Strategy:**
 - Interface-based storage design (`IStorage`) allows swapping implementations
 - Current implementation: In-memory storage (not persistent)
-- Video files stored in filesystem (`uploads/` directory)
-- Metadata stored in memory (videos, RTMP endpoints, streaming state)
-- Storage constraints: 5GB total, maximum number of videos enforced
+- Video files stored in filesystem (`uploads/` directory) with optional MinIO CDN backup
+- Metadata stored in memory (videos, RTMP endpoints, streaming state, email settings)
+- Storage constraints: 50GB total, maximum 4 videos
 
 **Rationale:** The interface pattern enables easy migration to database persistence (PostgreSQL via Drizzle ORM) without changing business logic. The current in-memory approach simplifies initial development and deployment.
 
@@ -60,36 +72,61 @@ Preferred communication style: Simple, everyday language.
 - `StreamingService` class manages FFmpeg processes
 - One FFmpeg process per enabled RTMP endpoint
 - Video looping achieved via FFmpeg's `-stream_loop -1` flag
+- Configurable stream duration (default: 11 hours 55 minutes)
 - Output resolution capped at 1920x1080 with aspect ratio preservation (Facebook compatible)
-- Video filter: scale/pad to maintain aspect ratio without upscaling
-- Bitrate: 3000k max, Buffer: 6000k, Audio: 160k AAC
-- Real-time monitoring of stream health via process stdout/stderr
+- Video filter: scale to maintain aspect ratio without upscaling
+- Bitrate: 3000k max, Buffer: 6000k, Audio: 160k AAC, 30 FPS
+- Real-time monitoring of stream health via FFmpeg stdout/stderr parsing
+- Health metrics tracked: dropped frames, total frames, bitrate, FPS, buffer health
 - Graceful cleanup on stream stop or errors
 - Selective streaming: Only enabled endpoints receive the stream
+- Automatic email alerts on stream errors (if configured)
+
+**MinIO CDN Integration:**
+- Optional S3-compatible object storage for video files
+- Videos uploaded to both local storage and MinIO
+- FFmpeg can stream from MinIO presigned URLs for better scalability
+- Automatic fallback to local storage if MinIO unavailable
+- Environment variables: `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
+
+**Email Notification System:**
+- Gmail SMTP integration via app passwords
+- Configurable error notifications when streams fail
+- Test connection feature in settings
+- Settings stored in memory (not persistent)
 
 **API Design:**
 - RESTful endpoints under `/api` prefix
+- Authentication: `/api/auth/login`, `/api/auth/logout`, `/api/auth/check`
 - Video operations: GET/POST/DELETE `/api/videos`
 - RTMP endpoint operations: CRUD on `/api/rtmp-endpoints`
-- Streaming control: `/api/streaming/start`, `/api/streaming/stop`
+- Streaming control: `/api/streaming/start`, `/api/streaming/stop`, `/api/streaming/select-video`
 - State polling: GET `/api/streaming/state` (polled every 2 seconds by frontend)
+- Storage info: GET `/api/storage`
+- Email settings: GET/POST `/api/email-settings`, `/api/email-settings/test`
 
 ### Data Models
 
 **Video Schema:**
-- Metadata: id, filename, originalName, size, duration, mimeType, uploadedAt
+- Metadata: id, filename, originalName, size, duration, mimeType, uploadedAt, minioUrl (optional)
 - Supported formats: MP4, MOV, MKV
 - Duration extracted using FFprobe
 
 **RTMP Endpoint Schema:**
 - Platform enum: youtube, facebook, rumble, odysee, twitter, custom
 - Fields: id, platform, name, rtmpUrl, streamKey, enabled
-- Platform-specific metadata (colors, labels) defined in shared schema
+- Platform-specific metadata (colors, labels, default URLs) defined in shared schema
 
 **Streaming State:**
 - Global streaming status (isStreaming, selectedVideoId, startedAt)
 - Per-endpoint status array with connection state (idle, connecting, live, error, stopped)
 - Optional metrics: bitrate, fps, error messages
+- Health metrics: droppedFrames, totalFrames, bufferHealth (0-100%)
+
+**Email Settings Schema:**
+- Fields: enabled, gmailAddress, gmailAppPassword, notifyOnError
+- Gmail app password authentication
+- In-memory storage (not persistent across restarts)
 
 ### Build & Deployment Strategy
 
@@ -111,34 +148,51 @@ Preferred communication style: Simple, everyday language.
 **Strategy:**
 - Multer with disk storage (uploads saved to `uploads/` directory)
 - File validation: MIME type and extension checks
-- Size limit enforcement at upload time
+- Size limit enforcement at upload time (50GB total storage)
 - FFprobe integration for video duration extraction
-- Storage quota checked before accepting uploads
+- Storage quota checked before accepting uploads (4 videos max)
+- Optional MinIO upload for CDN distribution
 
 **Pros:**
 - Simple, battle-tested approach
 - Files immediately available for FFmpeg processing
+- Optional CDN integration for scalability
 - No need for temporary file management
 
 **Cons:**
-- Not suitable for horizontal scaling (files local to server instance)
-- Future enhancement: Cloud storage (S3) for multi-instance deployments
+- Local storage not suitable for horizontal scaling without MinIO
+- MinIO integration adds complexity but enables multi-instance deployments
+
+## Code Quality
+
+**Recent Improvements:**
+- Cleaned up all unused code (21 issues resolved across 9 files)
+- Removed unused imports, functions, variables, and parameters
+- TypeScript strict mode with `--noUnusedLocals` and `--noUnusedParameters`
+- Zero TypeScript compilation errors
+- Successful production build verification
 
 ## External Dependencies
-
-### Database System
-- **Drizzle ORM** configured for PostgreSQL
-- Schema defined in `shared/schema.ts`
-- Migrations output to `./migrations` directory
-- Connection via `@neondatabase/serverless` driver
-- Environment variable: `DATABASE_URL`
-
-**Current Status:** Database infrastructure configured but not actively used. Current implementation uses in-memory storage (MemStorage class). Database integration is prepared for future persistence requirements.
 
 ### FFmpeg for Video Processing
 - **FFprobe**: Extracts video metadata (duration, format)
 - **FFmpeg**: Streams video to RTMP endpoints with looping
 - System dependency (must be installed on deployment environment)
+- Required flags: `-re`, `-stream_loop`, `-t`, `-vf`, `-c:v`, `-c:a`
+
+### MinIO (Optional)
+- **S3-compatible object storage** for CDN distribution
+- Videos uploaded to MinIO bucket for scalable access
+- Presigned URLs generated for FFmpeg streaming
+- Environment variables required: endpoint, access key, secret key, bucket name
+- **Graceful fallback**: System works without MinIO configuration
+
+### Email Service (Optional)
+- **Gmail SMTP** via app passwords
+- Nodemailer for email transport
+- Sends error alerts when streams fail
+- Configuration via settings page
+- **Graceful fallback**: System works without email configuration
 
 ### UI Component Library
 - **shadcn/ui**: Pre-built component library based on Radix UI
@@ -151,14 +205,17 @@ Preferred communication style: Simple, everyday language.
 - Custom theme configuration in `tailwind.config.ts`
 - Google Fonts: Inter (UI), JetBrains Mono (monospace)
 - Dark mode support via CSS class strategy
+- Custom status colors (online, away, busy, offline)
 
 ### Third-Party Platform Integrations
 - **RTMP Streaming Platforms**: YouTube Live, Facebook Live, Rumble, Odysee, Twitter/X
 - Integration method: User-provided RTMP URLs and stream keys
 - No OAuth or API integration - relies on platform-generated credentials
 - Custom RTMP endpoints supported for additional services
+- Platform-specific default URLs provided for convenience
 
 ### Development Tools
 - **Replit-specific plugins**: Runtime error modal, cartographer, dev banner
 - **Vite plugins**: React, runtime error overlay
 - **Type checking**: TypeScript with strict mode enabled
+- **Build tools**: esbuild for server bundling, Vite for client bundling

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Play, Square, Radio, Film, AlertCircle, Loader2 } from "lucide-react";
 import type { Video, StreamingState } from "@shared/schema";
 import { formatDuration } from "@shared/schema";
@@ -12,7 +14,7 @@ interface StreamingControlsProps {
   enabledEndpointsCount: number;
   isStarting: boolean;
   isStopping: boolean;
-  onStart: () => void;
+  onStart: (durationSeconds: number) => void;
   onStop: () => void;
 }
 
@@ -26,6 +28,8 @@ export function StreamingControls({
   onStop,
 }: StreamingControlsProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [hours, setHours] = useState(11);
+  const [minutes, setMinutes] = useState(55);
   const isStreaming = streamingState?.isStreaming || false;
 
   useEffect(() => {
@@ -35,18 +39,22 @@ export function StreamingControls({
     }
 
     const startTime = new Date(streamingState.startedAt).getTime();
-    
+
     const updateElapsed = () => {
       setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
     };
-    
+
     updateElapsed();
     const interval = setInterval(updateElapsed, 1000);
     return () => clearInterval(interval);
   }, [isStreaming, streamingState?.startedAt]);
 
   const canStart = selectedVideo && enabledEndpointsCount > 0 && !isStreaming;
-  const canStop = isStreaming;
+
+  const handleStart = () => {
+    const totalSeconds = (hours * 3600) + (minutes * 60);
+    onStart(totalSeconds);
+  };
 
   return (
     <Card className={`overflow-hidden transition-all ${isStreaming ? "ring-2 ring-status-online" : ""}`}>
@@ -84,6 +92,35 @@ export function StreamingControls({
 
           {/* Status and Controls */}
           <div className="flex items-center gap-4">
+            {/* Duration Settings (only show when not streaming) */}
+            {!isStreaming && (
+              <div className="flex items-end gap-2 mr-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="hours" className="text-xs">Hours</Label>
+                  <Input
+                    id="hours"
+                    type="number"
+                    min="0"
+                    value={hours}
+                    onChange={(e) => setHours(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-16 h-9"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="minutes" className="text-xs">Minutes</Label>
+                  <Input
+                    id="minutes"
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={minutes}
+                    onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
+                    className="w-16 h-9"
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Stream Status */}
             <div className="text-right">
               {isStreaming ? (
@@ -132,7 +169,7 @@ export function StreamingControls({
               ) : (
                 <Button
                   size="lg"
-                  onClick={onStart}
+                  onClick={handleStart}
                   disabled={!canStart || isStarting}
                   className="min-w-[140px]"
                   data-testid="button-start-stream"

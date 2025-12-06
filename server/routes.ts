@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { createServer, type Server } from "http";
+import type { Server } from "http";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -8,6 +8,7 @@ import { exec } from "child_process";
 import { storage } from "./storage";
 import { streamingService } from "./streaming";
 import { emailService } from "./email";
+import { authService } from "./auth";
 import { insertRtmpEndpointSchema, MAX_STORAGE_BYTES, MAX_VIDEOS, insertEmailSettingsSchema } from "@shared/schema";
 
 const execAsync = promisify(exec);
@@ -20,10 +21,10 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Configure multer for video uploads
 const uploadStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, _file, cb) => {
     cb(null, uploadsDir);
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
     cb(null, `video-${uniqueSuffix}${ext}`);
@@ -35,11 +36,11 @@ const upload = multer({
   limits: {
     fileSize: MAX_STORAGE_BYTES, // Max single file size
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     const allowedTypes = ["video/mp4", "video/quicktime", "video/x-matroska"];
     const allowedExts = [".mp4", ".mov", ".mkv"];
     const ext = path.extname(file.originalname).toLowerCase();
-    
+
     if (allowedTypes.includes(file.mimetype) || allowedExts.includes(ext)) {
       cb(null, true);
     } else {
@@ -65,11 +66,66 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  
-  // ============ VIDEO ROUTES ============
-  
+
+  // Initialize auth service
+  await authService.initialize();
+
+  // Authentication middleware for API routes
+  const requireAuth = (req: Request, res: Response, next: any) => {
+    const sessionId = req.headers['x-session-id'] as string;
+
+    if (!sessionId || !authService.verifySession(sessionId)) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    next();
+  };
+
+  // ============ AUTH ROUTES (No auth required) ============
+
+  // Login
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { password } = req.body;
+
+      if (!password) {
+        return res.status(400).json({ message: "Password required" });
+      }
+
+      const isValid = await authService.verifyPassword(password);
+
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid password" });
+      }
+
+      const sessionId = authService.createSession();
+      res.json({ sessionId, message: "Login successful" });
+    } catch (error: any) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Logout
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
+    const sessionId = req.headers['x-session-id'] as string;
+    if (sessionId) {
+      authService.deleteSession(sessionId);
+    }
+    res.json({ message: "Logged out" });
+  });
+
+  // Check session
+  app.get("/api/auth/check", (req: Request, res: Response) => {
+    const sessionId = req.headers['x-session-id'] as string;
+    const isValid = sessionId && authService.verifySession(sessionId);
+    res.json({ authenticated: isValid });
+  });
+
+  // ============ VIDEO ROUTES (Protected) ============
+
   // Get all videos
-  app.get("/api/videos", async (req: Request, res: Response) => {
+  app.get("/api/videos", requireAuth, async (_req: Request, res: Response) => {
     try {
       const videos = await storage.getVideos();
       res.json(videos);
@@ -81,6 +137,16 @@ export async function registerRoutes(
   // Upload video
   app.post("/api/videos/upload", upload.single("video"), async (req: Request, res: Response) => {
     try {
+      // Check authentication
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId || !authService.verifySession(sessionId)) {
+        // Clean up uploaded file if auth fails
+        if (req.file) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
@@ -102,6 +168,18 @@ export async function registerRoutes(
       // Get video duration
       const duration = await getVideoDuration(req.file.path);
 
+      // Upload to MinIO
+      let minioUrl: string | undefined;
+      try {
+        const { minioStorage } = await import("./minio");
+        const minioKey = `videos/${req.file.filename}`;
+        minioUrl = await minioStorage.uploadFile(req.file.path, minioKey);
+        console.log(`Video uploaded to MinIO: ${minioUrl}`);
+      } catch (minioError) {
+        console.error("MinIO upload failed, falling back to local storage:", minioError);
+        // Continue without MinIO URL - video will stream from local storage
+      }
+
       const video = await storage.addVideo({
         filename: req.file.filename,
         originalName: req.file.originalname,
@@ -109,6 +187,7 @@ export async function registerRoutes(
         duration,
         mimeType: req.file.mimetype,
         uploadedAt: new Date().toISOString(),
+        minioUrl, // Store MinIO URL if upload succeeded
       });
 
       res.json(video);
@@ -119,11 +198,11 @@ export async function registerRoutes(
   });
 
   // Delete video
-  app.delete("/api/videos/:id", async (req: Request, res: Response) => {
+  app.delete("/api/videos/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const video = await storage.getVideo(id);
-      
+
       if (!video) {
         return res.status(404).json({ message: "Video not found" });
       }
@@ -132,6 +211,19 @@ export async function registerRoutes(
       const state = await storage.getStreamingState();
       if (state.isStreaming && state.selectedVideoId === id) {
         return res.status(400).json({ message: "Cannot delete video while it's being streamed" });
+      }
+
+      // Delete from MinIO if exists
+      if (video.minioUrl) {
+        try {
+          const { minioStorage } = await import("./minio");
+          const minioKey = `videos/${video.filename}`;
+          await minioStorage.deleteFile(minioKey);
+          console.log(`Deleted from MinIO: ${minioKey}`);
+        } catch (minioError) {
+          console.error("Failed to delete from MinIO:", minioError);
+          // Continue with local deletion even if MinIO fails
+        }
       }
 
       // Delete file from disk
@@ -148,9 +240,9 @@ export async function registerRoutes(
   });
 
   // ============ RTMP ENDPOINT ROUTES ============
-  
+
   // Get all endpoints
-  app.get("/api/rtmp-endpoints", async (req: Request, res: Response) => {
+  app.get("/api/rtmp-endpoints", requireAuth, async (_req: Request, res: Response) => {
     try {
       const endpoints = await storage.getRtmpEndpoints();
       res.json(endpoints);
@@ -160,7 +252,7 @@ export async function registerRoutes(
   });
 
   // Create endpoint
-  app.post("/api/rtmp-endpoints", async (req: Request, res: Response) => {
+  app.post("/api/rtmp-endpoints", requireAuth, async (req: Request, res: Response) => {
     try {
       const result = insertRtmpEndpointSchema.safeParse(req.body);
       if (!result.success) {
@@ -179,7 +271,7 @@ export async function registerRoutes(
     try {
       const { id } = req.params;
       const endpoint = await storage.updateRtmpEndpoint(id, req.body);
-      
+
       if (!endpoint) {
         return res.status(404).json({ message: "Endpoint not found" });
       }
@@ -191,11 +283,11 @@ export async function registerRoutes(
   });
 
   // Delete endpoint
-  app.delete("/api/rtmp-endpoints/:id", async (req: Request, res: Response) => {
+  app.delete("/api/rtmp-endpoints/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const success = await storage.deleteRtmpEndpoint(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Endpoint not found" });
       }
@@ -207,9 +299,9 @@ export async function registerRoutes(
   });
 
   // ============ STREAMING ROUTES ============
-  
+
   // Get streaming state
-  app.get("/api/streaming/state", async (req: Request, res: Response) => {
+  app.get("/api/streaming/state", requireAuth, async (_req: Request, res: Response) => {
     try {
       const state = await storage.getStreamingState();
       res.json(state);
@@ -222,7 +314,7 @@ export async function registerRoutes(
   app.post("/api/streaming/select-video", async (req: Request, res: Response) => {
     try {
       const { videoId } = req.body;
-      
+
       if (!videoId) {
         return res.status(400).json({ message: "Video ID required" });
       }
@@ -245,10 +337,10 @@ export async function registerRoutes(
   });
 
   // Start streaming
-  app.post("/api/streaming/start", async (req: Request, res: Response) => {
+  app.post("/api/streaming/start", requireAuth, async (req: Request, res: Response) => {
     try {
       const state = await storage.getStreamingState();
-      
+
       if (state.isStreaming) {
         return res.status(400).json({ message: "Already streaming" });
       }
@@ -259,12 +351,13 @@ export async function registerRoutes(
 
       const endpoints = await storage.getRtmpEndpoints();
       const enabledEndpoints = endpoints.filter(e => e.enabled);
-      
+
       if (enabledEndpoints.length === 0) {
         return res.status(400).json({ message: "No RTMP endpoints configured" });
       }
 
-      await streamingService.startStreaming();
+      const { durationSeconds } = req.body;
+      await streamingService.startStreaming(durationSeconds);
       res.json({ success: true });
     } catch (error: any) {
       console.error("Start streaming error:", error);
@@ -273,7 +366,7 @@ export async function registerRoutes(
   });
 
   // Stop streaming
-  app.post("/api/streaming/stop", async (req: Request, res: Response) => {
+  app.post("/api/streaming/stop", requireAuth, async (_req: Request, res: Response) => {
     try {
       await streamingService.stopStreaming();
       res.json({ success: true });
@@ -284,9 +377,9 @@ export async function registerRoutes(
   });
 
   // ============ STORAGE ROUTES ============
-  
+
   // Get storage info
-  app.get("/api/storage", async (req: Request, res: Response) => {
+  app.get("/api/storage", requireAuth, async (_req: Request, res: Response) => {
     try {
       const info = await storage.getStorageInfo();
       res.json(info);
@@ -298,7 +391,7 @@ export async function registerRoutes(
   // ============ EMAIL SETTINGS ROUTES ============
 
   // Get email settings
-  app.get("/api/email-settings", async (req: Request, res: Response) => {
+  app.get("/api/email-settings", requireAuth, async (_req: Request, res: Response) => {
     try {
       const settings = await storage.getEmailSettings();
       // Return settings without the password for security
@@ -314,14 +407,14 @@ export async function registerRoutes(
   });
 
   // Update email settings
-  app.post("/api/email-settings", async (req: Request, res: Response) => {
+  app.post("/api/email-settings", requireAuth, async (req: Request, res: Response) => {
     try {
       const parsed = insertEmailSettingsSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: "Invalid email settings" });
       }
 
-      const settings = await storage.updateEmailSettings(parsed.data);
+      await storage.updateEmailSettings(parsed.data);
       res.json({ message: "Email settings updated" });
     } catch (error: any) {
       console.error("Email settings error:", error);

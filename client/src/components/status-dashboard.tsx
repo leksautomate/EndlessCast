@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Wifi, WifiOff, AlertTriangle, Loader2 } from "lucide-react";
+import { Activity, AlertTriangle, Loader2 } from "lucide-react";
 import { SiYoutube, SiFacebook } from "react-icons/si";
 import type { RtmpEndpoint, StreamingState, RtmpPlatform, StreamStatus } from "@shared/schema";
 import { platformInfo } from "@shared/schema";
@@ -39,20 +39,6 @@ function PlatformIcon({ platform, className }: { platform: RtmpPlatform; classNa
   }
 }
 
-function getStatusIcon(status: StreamStatus["status"]) {
-  switch (status) {
-    case "live":
-      return <Wifi className="w-4 h-4 text-status-online" />;
-    case "connecting":
-      return <Loader2 className="w-4 h-4 text-status-away animate-spin" />;
-    case "error":
-      return <AlertTriangle className="w-4 h-4 text-status-busy" />;
-    case "stopped":
-    case "idle":
-    default:
-      return <WifiOff className="w-4 h-4 text-status-offline" />;
-  }
-}
 
 function getStatusBadge(status: StreamStatus["status"]) {
   switch (status) {
@@ -142,15 +128,14 @@ export function StatusDashboard({
             return (
               <div
                 key={endpoint.id}
-                className={`p-4 rounded-lg border transition-all ${
-                  status.status === "live"
-                    ? "bg-status-online/5 border-status-online/30"
-                    : status.status === "error"
+                className={`p-4 rounded-lg border transition-all ${status.status === "live"
+                  ? "bg-status-online/5 border-status-online/30"
+                  : status.status === "error"
                     ? "bg-status-busy/5 border-status-busy/30"
                     : status.status === "connecting"
-                    ? "bg-status-away/5 border-status-away/30"
-                    : "bg-muted/30"
-                }`}
+                      ? "bg-status-away/5 border-status-away/30"
+                      : "bg-muted/30"
+                  }`}
                 data-testid={`status-card-${endpoint.id}`}
               >
                 <div className="flex items-start justify-between gap-3">

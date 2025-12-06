@@ -9,6 +9,7 @@ export const videoSchema = z.object({
   duration: z.number(), // in seconds
   mimeType: z.string(),
   uploadedAt: z.string(),
+  minioUrl: z.string().optional(), // URL in MinIO storage
 });
 
 export type Video = z.infer<typeof videoSchema>;
@@ -16,7 +17,7 @@ export type Video = z.infer<typeof videoSchema>;
 // RTMP endpoint platforms
 export const rtmpPlatforms = [
   "youtube",
-  "facebook", 
+  "facebook",
   "rumble",
   "odysee",
   "twitter",
@@ -48,9 +49,28 @@ export const streamStatusSchema = z.object({
   errorMessage: z.string().optional(),
   bitrate: z.number().optional(),
   fps: z.number().optional(),
+  healthMetrics: z.object({
+    droppedFrames: z.number().default(0),
+    totalFrames: z.number().default(0),
+    bufferHealth: z.number().default(100),
+  }).optional(),
 });
 
 export type StreamStatus = z.infer<typeof streamStatusSchema>;
+
+// Stream health metrics
+export const streamHealthSchema = z.object({
+  droppedFrames: z.number().default(0),
+  totalFrames: z.number().default(0),
+  currentBitrate: z.number().optional(),
+  averageBitrate: z.number().optional(),
+  currentFps: z.number().optional(),
+  targetFps: z.number().default(30),
+  bufferHealth: z.number().default(100), // 0-100%
+  lastUpdate: z.string().optional(),
+});
+
+export type StreamHealth = z.infer<typeof streamHealthSchema>;
 
 // Playlist schema
 export const playlistSchema = z.object({
@@ -119,33 +139,33 @@ export type StorageInfo = z.infer<typeof storageInfoSchema>;
 
 // Platform display info
 export const platformInfo: Record<RtmpPlatform, { name: string; color: string; defaultUrl: string }> = {
-  youtube: { 
-    name: "YouTube Live", 
+  youtube: {
+    name: "YouTube Live",
     color: "#FF0000",
     defaultUrl: "rtmp://a.rtmp.youtube.com/live2"
   },
-  facebook: { 
-    name: "Facebook Live", 
+  facebook: {
+    name: "Facebook Live",
     color: "#1877F2",
     defaultUrl: "rtmps://live-api-s.facebook.com:443/rtmp/"
   },
-  rumble: { 
-    name: "Rumble", 
+  rumble: {
+    name: "Rumble",
     color: "#85C742",
     defaultUrl: "rtmp://live.rumble.com/live/"
   },
-  odysee: { 
-    name: "Odysee", 
+  odysee: {
+    name: "Odysee",
     color: "#F2495C",
     defaultUrl: "rtmp://stream.odysee.com/live"
   },
-  twitter: { 
-    name: "Twitter/X", 
+  twitter: {
+    name: "Twitter/X",
     color: "#000000",
     defaultUrl: "rtmps://prod-rtmp-eu.pscp.tv:443/x"
   },
-  custom: { 
-    name: "Custom RTMP", 
+  custom: {
+    name: "Custom RTMP",
     color: "#6366F1",
     defaultUrl: ""
   },
@@ -165,7 +185,7 @@ export function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
-  
+
   if (h > 0) {
     return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   }
@@ -200,6 +220,6 @@ export const insertEmailSettingsSchema = emailSettingsSchema;
 export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
 
 // Storage limit constants
-export const MAX_STORAGE_BYTES = 10 * 1024 * 1024 * 1024; // 10GB
+export const MAX_STORAGE_BYTES = 50 * 1024 * 1024 * 1024; // 50GB
 export const MAX_VIDEOS = 4;
 export const MAX_RESTART_ATTEMPTS = 3;

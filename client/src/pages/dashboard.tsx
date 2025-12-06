@@ -8,6 +8,7 @@ import { RtmpPanel } from "@/components/rtmp-panel";
 import { StreamingControls } from "@/components/streaming-controls";
 import { StatusDashboard } from "@/components/status-dashboard";
 import { StorageIndicator } from "@/components/storage-indicator";
+import { StreamHealthMonitor } from "@/components/stream-health-monitor";
 import { Radio, Moon, Sun, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -43,7 +44,7 @@ export default function Dashboard() {
   });
 
   // Fetch streaming state
-  const { data: streamingState, isLoading: stateLoading } = useQuery<StreamingState>({
+  const { data: streamingState } = useQuery<StreamingState>({
     queryKey: ["/api/streaming/state"],
     refetchInterval: 2000,
   });
@@ -157,8 +158,8 @@ export default function Dashboard() {
 
   // Start streaming mutation
   const startStreamMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/streaming/start");
+    mutationFn: async (durationSeconds?: number) => {
+      return apiRequest("POST", "/api/streaming/start", { durationSeconds });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/streaming/state"] });
@@ -192,7 +193,6 @@ export default function Dashboard() {
 
   const selectedVideo = videos.find(v => v.id === streamingState?.selectedVideoId);
   const enabledEndpoints = endpoints.filter(e => e.enabled);
-  const isLoading = videosLoading || endpointsLoading || stateLoading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -209,22 +209,22 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">24/7 Multi-Platform Broadcasting</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4">
           {storageInfo && (
             <StorageIndicator storageInfo={storageInfo} />
           )}
-          <Button 
-            size="icon" 
-            variant="ghost" 
+          <Button
+            size="icon"
+            variant="ghost"
             onClick={() => setLocation("/settings")}
             data-testid="button-settings"
           >
             <SettingsIcon className="w-4 h-4" />
           </Button>
-          <Button 
-            size="icon" 
-            variant="ghost" 
+          <Button
+            size="icon"
+            variant="ghost"
             onClick={toggleTheme}
             data-testid="button-theme-toggle"
           >
@@ -242,10 +242,20 @@ export default function Dashboard() {
             enabledEndpointsCount={enabledEndpoints.length}
             isStarting={startStreamMutation.isPending}
             isStopping={stopStreamMutation.isPending}
-            onStart={() => startStreamMutation.mutate()}
+            onStart={(durationSeconds) => startStreamMutation.mutate(durationSeconds)}
             onStop={() => stopStreamMutation.mutate()}
           />
         </section>
+
+        {/* Stream Health Monitor */}
+        {streamingState?.isStreaming && (
+          <section className="mb-8">
+            <StreamHealthMonitor
+              endpoints={enabledEndpoints}
+              streamingState={streamingState}
+            />
+          </section>
+        )}
 
         {/* Two-column layout */}
         <div className="grid lg:grid-cols-2 gap-6 mb-8">

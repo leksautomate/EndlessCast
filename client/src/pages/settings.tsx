@@ -20,7 +20,7 @@ export default function Settings() {
   const [testingConnection, setTestingConnection] = useState(false);
 
   // Fetch email settings
-  const { data: emailSettings, isLoading } = useQuery({
+  const { data: emailSettings } = useQuery({
     queryKey: ["/api/email-settings"],
     queryFn: async () => {
       const res = await fetch("/api/email-settings");

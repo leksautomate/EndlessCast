@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, StreamStats, EmailSettings, InsertEmailSettings } from "@shared/schema";
+import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, EmailSettings, InsertEmailSettings } from "@shared/schema";
 import { MAX_STORAGE_BYTES, MAX_VIDEOS } from "@shared/schema";
 
 export interface IStorage {
@@ -8,35 +8,35 @@ export interface IStorage {
   getVideo(id: string): Promise<Video | undefined>;
   addVideo(video: Omit<Video, "id">): Promise<Video>;
   deleteVideo(id: string): Promise<boolean>;
-  
+
   // RTMP endpoint operations
   getRtmpEndpoints(): Promise<RtmpEndpoint[]>;
   getRtmpEndpoint(id: string): Promise<RtmpEndpoint | undefined>;
   createRtmpEndpoint(endpoint: InsertRtmpEndpoint): Promise<RtmpEndpoint>;
   updateRtmpEndpoint(id: string, endpoint: Partial<InsertRtmpEndpoint>): Promise<RtmpEndpoint | undefined>;
   deleteRtmpEndpoint(id: string): Promise<boolean>;
-  
+
   // Streaming state operations
   getStreamingState(): Promise<StreamingState>;
   setStreamingState(state: Partial<StreamingState>): Promise<StreamingState>;
   updateEndpointStatus(endpointId: string, status: Partial<StreamStatus>): Promise<void>;
-  
+
   // Playlist operations
   getPlaylists(): Promise<Playlist[]>;
   createPlaylist(playlist: InsertPlaylist): Promise<Playlist>;
   updatePlaylist(id: string, playlist: Partial<InsertPlaylist>): Promise<Playlist | undefined>;
   deletePlaylist(id: string): Promise<boolean>;
-  
+
   // Scheduled stream operations
   getScheduledStreams(): Promise<ScheduledStream[]>;
   createScheduledStream(stream: InsertScheduledStream): Promise<ScheduledStream>;
   updateScheduledStream(id: string, stream: Partial<InsertScheduledStream>): Promise<ScheduledStream | undefined>;
   deleteScheduledStream(id: string): Promise<boolean>;
-  
+
   // Email settings operations
   getEmailSettings(): Promise<EmailSettings | null>;
   updateEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings>;
-  
+
   // Storage info
   getStorageInfo(): Promise<StorageInfo>;
 }
@@ -110,7 +110,7 @@ export class MemStorage implements IStorage {
   async updateRtmpEndpoint(id: string, data: Partial<InsertRtmpEndpoint>): Promise<RtmpEndpoint | undefined> {
     const existing = this.rtmpEndpoints.get(id);
     if (!existing) return undefined;
-    
+
     const updated: RtmpEndpoint = { ...existing, ...data };
     this.rtmpEndpoints.set(id, updated);
     return updated;

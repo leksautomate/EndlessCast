@@ -57,10 +57,14 @@ export default function Dashboard() {
   // Upload video mutation
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      const sessionId = localStorage.getItem("sessionId");
       const formData = new FormData();
       formData.append("video", file);
       const response = await fetch("/api/videos/upload", {
         method: "POST",
+        headers: {
+          ...(sessionId ? { "x-session-id": sessionId } : {}),
+        },
         body: formData,
       });
       if (!response.ok) {

@@ -168,18 +168,6 @@ export async function registerRoutes(
       // Get video duration
       const duration = await getVideoDuration(req.file.path);
 
-      // Upload to MinIO
-      let minioUrl: string | undefined;
-      try {
-        const { minioStorage } = await import("./minio");
-        const minioKey = `videos/${req.file.filename}`;
-        minioUrl = await minioStorage.uploadFile(req.file.path, minioKey);
-        console.log(`Video uploaded to MinIO: ${minioUrl}`);
-      } catch (minioError) {
-        console.error("MinIO upload failed, falling back to local storage:", minioError);
-        // Continue without MinIO URL - video will stream from local storage
-      }
-
       const video = await storage.addVideo({
         filename: req.file.filename,
         originalName: req.file.originalname,
@@ -187,7 +175,6 @@ export async function registerRoutes(
         duration,
         mimeType: req.file.mimetype,
         uploadedAt: new Date().toISOString(),
-        minioUrl, // Store MinIO URL if upload succeeded
       });
 
       res.json(video);
@@ -211,19 +198,6 @@ export async function registerRoutes(
       const state = await storage.getStreamingState();
       if (state.isStreaming && state.selectedVideoId === id) {
         return res.status(400).json({ message: "Cannot delete video while it's being streamed" });
-      }
-
-      // Delete from MinIO if exists
-      if (video.minioUrl) {
-        try {
-          const { minioStorage } = await import("./minio");
-          const minioKey = `videos/${video.filename}`;
-          await minioStorage.deleteFile(minioKey);
-          console.log(`Deleted from MinIO: ${minioKey}`);
-        } catch (minioError) {
-          console.error("Failed to delete from MinIO:", minioError);
-          // Continue with local deletion even if MinIO fails
-        }
       }
 
       // Delete file from disk

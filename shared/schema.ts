@@ -9,7 +9,6 @@ export const videoSchema = z.object({
   duration: z.number(), // in seconds
   mimeType: z.string(),
   uploadedAt: z.string(),
-  minioUrl: z.string().optional(), // URL in MinIO storage
 });
 
 export type Video = z.infer<typeof videoSchema>;

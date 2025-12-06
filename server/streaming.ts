@@ -56,25 +56,9 @@ class StreamingService {
   }
 
   private async startEndpointStream(video: any, endpoint: RtmpEndpoint, durationSeconds: number): Promise<void> {
-    let videoSource: string;
-
-    // Prefer MinIO URL if available
-    if (video.minioUrl) {
-      try {
-        const { minioStorage } = await import("./minio");
-        const minioKey = `videos/${video.filename}`;
-        // Generate presigned URL valid for duration + 1 hour buffer
-        videoSource = await minioStorage.getPresignedUrl(minioKey, durationSeconds + 3600);
-        console.log(`Streaming from MinIO: ${video.filename}`);
-      } catch (error) {
-        console.error("Failed to get MinIO presigned URL, falling back to local:", error);
-        videoSource = path.join(process.cwd(), "uploads", video.filename);
-      }
-    } else {
-      // Use local file
-      videoSource = path.join(process.cwd(), "uploads", video.filename);
-      console.log(`Streaming from local storage: ${videoSource}`);
-    }
+    // Use local file storage only
+    const videoSource = path.join(process.cwd(), "uploads", video.filename);
+    console.log(`Streaming from local storage: ${videoSource}`);
 
     const rtmpFullUrl = `${endpoint.rtmpUrl}/${endpoint.streamKey}`;
 
@@ -83,7 +67,7 @@ class StreamingService {
     const ffmpegArgs = [
       "-re",                          // Read input at native frame rate
       "-stream_loop", "-1",           // Loop indefinitely
-      "-i", videoSource,              // Input file (local or MinIO URL)
+      "-i", videoSource,              // Input file (local storage)
       "-t", durationSeconds.toString(), // Stop writing output after duration
       "-vf", "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
       "-r", "30",                     // Force 30 fps output (YouTube minimum)

@@ -9,52 +9,62 @@ import { StreamingControls } from "@/components/streaming-controls";
 import { StatusDashboard } from "@/components/status-dashboard";
 import { StorageIndicator } from "@/components/storage-indicator";
 import { StreamHealthMonitor } from "@/components/stream-health-monitor";
-import { Radio, Moon, Sun, Settings as SettingsIcon } from "lucide-react";
+import { useTheme, themePresets } from "@/components/theme-provider";
+import { 
+  Wifi, 
+  Settings as SettingsIcon, 
+  LogOut,
+  Terminal,
+  Palette,
+  Activity
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 import { useLocation } from "wouter";
+import type { ThemeColor } from "@shared/schema";
 
-export default function Dashboard() {
+interface DashboardProps {
+  onLogout: () => void;
+}
+
+export default function Dashboard({ onLogout }: DashboardProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [isDark, setIsDark] = useState(false);
+  const { theme, setTheme } = useTheme();
 
-  useEffect(() => {
-    const saved = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const shouldBeDark = saved === "dark" || (!saved && prefersDark);
-    setIsDark(shouldBeDark);
-    document.documentElement.classList.toggle("dark", shouldBeDark);
-  }, []);
-
-  const toggleTheme = () => {
-    const newDark = !isDark;
-    setIsDark(newDark);
-    document.documentElement.classList.toggle("dark", newDark);
-    localStorage.setItem("theme", newDark ? "dark" : "light");
+  const handleLogout = () => {
+    onLogout();
+    setLocation("/login");
+    toast({
+      title: "Logged out",
+      description: "Session terminated successfully.",
+    });
   };
 
-  // Fetch videos
   const { data: videos = [], isLoading: videosLoading } = useQuery<Video[]>({
     queryKey: ["/api/videos"],
   });
 
-  // Fetch RTMP endpoints
   const { data: endpoints = [], isLoading: endpointsLoading } = useQuery<RtmpEndpoint[]>({
     queryKey: ["/api/rtmp-endpoints"],
   });
 
-  // Fetch streaming state
   const { data: streamingState } = useQuery<StreamingState>({
     queryKey: ["/api/streaming/state"],
     refetchInterval: 2000,
   });
 
-  // Fetch storage info
   const { data: storageInfo } = useQuery<StorageInfo>({
     queryKey: ["/api/storage"],
   });
 
-  // Upload video mutation
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const sessionId = localStorage.getItem("sessionId");
@@ -77,20 +87,19 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/storage"] });
       toast({
-        title: "Video uploaded",
-        description: "Your video has been uploaded successfully.",
+        title: "Upload Complete",
+        description: "Video file processed successfully.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Upload failed",
+        title: "Upload Failed",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  // Delete video mutation
   const deleteMutation = useMutation({
     mutationFn: async (videoId: string) => {
       return apiRequest("DELETE", `/api/videos/${videoId}`);
@@ -99,20 +108,19 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/storage"] });
       toast({
-        title: "Video deleted",
-        description: "The video has been removed.",
+        title: "File Deleted",
+        description: "Video removed from storage.",
       });
     },
     onError: () => {
       toast({
-        title: "Delete failed",
-        description: "Could not delete the video.",
+        title: "Delete Failed",
+        description: "Could not remove the file.",
         variant: "destructive",
       });
     },
   });
 
-  // Select video mutation
   const selectVideoMutation = useMutation({
     mutationFn: async (videoId: string) => {
       return apiRequest("POST", `/api/streaming/select-video`, { videoId });
@@ -122,7 +130,6 @@ export default function Dashboard() {
     },
   });
 
-  // Create RTMP endpoint mutation
   const createEndpointMutation = useMutation({
     mutationFn: async (endpoint: Omit<RtmpEndpoint, "id">) => {
       return apiRequest("POST", "/api/rtmp-endpoints", endpoint);
@@ -130,13 +137,12 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rtmp-endpoints"] });
       toast({
-        title: "Endpoint added",
-        description: "RTMP endpoint has been configured.",
+        title: "Endpoint Added",
+        description: "RTMP destination configured.",
       });
     },
   });
 
-  // Update RTMP endpoint mutation
   const updateEndpointMutation = useMutation({
     mutationFn: async ({ id, ...data }: RtmpEndpoint) => {
       return apiRequest("PATCH", `/api/rtmp-endpoints/${id}`, data);
@@ -146,7 +152,6 @@ export default function Dashboard() {
     },
   });
 
-  // Delete RTMP endpoint mutation
   const deleteEndpointMutation = useMutation({
     mutationFn: async (id: string) => {
       return apiRequest("DELETE", `/api/rtmp-endpoints/${id}`);
@@ -154,13 +159,12 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rtmp-endpoints"] });
       toast({
-        title: "Endpoint removed",
-        description: "RTMP endpoint has been deleted.",
+        title: "Endpoint Removed",
+        description: "RTMP destination deleted.",
       });
     },
   });
 
-  // Start streaming mutation
   const startStreamMutation = useMutation({
     mutationFn: async (durationSeconds?: number) => {
       return apiRequest("POST", "/api/streaming/start", { durationSeconds });
@@ -168,20 +172,19 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/streaming/state"] });
       toast({
-        title: "Streaming started",
-        description: "Your video is now broadcasting.",
+        title: "Stream Initiated",
+        description: "Broadcasting to all enabled endpoints.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to start streaming",
+        title: "Stream Failed",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  // Stop streaming mutation
   const stopStreamMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", "/api/streaming/stop");
@@ -189,8 +192,8 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/streaming/state"] });
       toast({
-        title: "Streaming stopped",
-        description: "Broadcast has been stopped.",
+        title: "Stream Terminated",
+        description: "All broadcasts stopped.",
       });
     },
   });
@@ -200,24 +203,64 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="h-16 border-b px-6 flex items-center justify-between gap-4 sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="h-16 border-b border-primary/20 px-6 flex items-center justify-between gap-4 sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <Radio className="w-5 h-5 text-primary-foreground" />
+          <div className="w-10 h-10 rounded border border-primary/50 flex items-center justify-center bg-primary/10 box-glow-sm">
+            <Wifi className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold leading-tight" data-testid="text-app-title">
+            <h1 className="text-lg font-bold text-primary glow-sm" data-testid="text-app-title">
               EndlessCast
             </h1>
-            <p className="text-xs text-muted-foreground">24/7 Multi-Platform Broadcasting</p>
+            <p className="text-xs text-muted-foreground font-mono">
+              <span className="text-primary">&gt;</span> Control Panel v1.0
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {streamingState?.isStreaming && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded border border-green-500/30 bg-green-500/10">
+              <Activity className="w-4 h-4 text-green-500 animate-pulse" />
+              <span className="text-sm text-green-500 font-mono">LIVE</span>
+            </div>
+          )}
+
           {storageInfo && (
             <StorageIndicator storageInfo={storageInfo} />
           )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" data-testid="button-theme-selector">
+                <Palette className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Color Theme
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {(Object.keys(themePresets) as ThemeColor[]).filter(t => t !== 'custom').map((themeKey) => (
+                <DropdownMenuItem
+                  key={themeKey}
+                  onClick={() => setTheme(themeKey)}
+                  className="flex items-center gap-3"
+                  data-testid={`menu-theme-${themeKey}`}
+                >
+                  <div 
+                    className="w-4 h-4 rounded-full border border-foreground/20"
+                    style={{ backgroundColor: themePresets[themeKey].primary }}
+                  />
+                  <span>{themePresets[themeKey].name}</span>
+                  {theme === themeKey && (
+                    <span className="ml-auto text-primary">*</span>
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button
             size="icon"
             variant="ghost"
@@ -226,19 +269,28 @@ export default function Dashboard() {
           >
             <SettingsIcon className="w-4 h-4" />
           </Button>
+
           <Button
             size="icon"
             variant="ghost"
-            onClick={toggleTheme}
-            data-testid="button-theme-toggle"
+            onClick={handleLogout}
+            data-testid="button-logout"
           >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            <LogOut className="w-4 h-4" />
           </Button>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Streaming Control Center */}
+        <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground font-mono">
+          <Terminal className="w-4 h-4 text-primary" />
+          <span className="text-primary">admin@endlesscast</span>
+          <span>:</span>
+          <span>~</span>
+          <span className="text-primary">$</span>
+          <span>dashboard --status</span>
+        </div>
+
         <section className="mb-8">
           <StreamingControls
             selectedVideo={selectedVideo}
@@ -251,7 +303,6 @@ export default function Dashboard() {
           />
         </section>
 
-        {/* Stream Health Monitor */}
         {streamingState?.isStreaming && (
           <section className="mb-8">
             <StreamHealthMonitor
@@ -261,9 +312,7 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* Two-column layout */}
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          {/* Video Library */}
           <section>
             <VideoLibrary
               videos={videos}
@@ -278,7 +327,6 @@ export default function Dashboard() {
             />
           </section>
 
-          {/* RTMP Configuration */}
           <section>
             <RtmpPanel
               endpoints={endpoints}
@@ -290,7 +338,6 @@ export default function Dashboard() {
           </section>
         </div>
 
-        {/* Status Dashboard */}
         {enabledEndpoints.length > 0 && (
           <section>
             <StatusDashboard
@@ -300,6 +347,18 @@ export default function Dashboard() {
           </section>
         )}
       </main>
+
+      <footer className="border-t border-primary/10 py-4 mt-8">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs text-muted-foreground font-mono">
+          <div className="flex items-center gap-2">
+            <Wifi className="w-3 h-3 text-primary" />
+            <span>EndlessCast v1.0</span>
+          </div>
+          <div>
+            <span className="text-primary">&gt;</span> 24/7 Streaming Platform
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

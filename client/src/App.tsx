@@ -1,35 +1,38 @@
 import { useState, useEffect } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/components/theme-provider";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
+import Landing from "@/pages/landing";
 import { LoginPage } from "@/pages/login";
 
-function Router() {
+function LoadingScreen() {
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/settings" component={Settings} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-sm text-muted-foreground font-mono">
+          <span className="text-primary">&gt;</span> Verifying session...
+        </p>
+      </div>
+    </div>
   );
 }
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isChecking, setIsChecking] = useState(true);
+function useAuth() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Check if user is authenticated on mount
     const checkAuth = async () => {
       const sessionId = localStorage.getItem("sessionId");
-
+      
       if (!sessionId) {
-        setIsChecking(false);
+        setIsAuthenticated(false);
         return;
       }
 
@@ -37,38 +40,69 @@ function App() {
         const res = await fetch("/api/auth/check", {
           headers: { "x-session-id": sessionId },
         });
-
         const data = await res.json();
         setIsAuthenticated(data.authenticated);
-      } catch (error) {
-        console.error("Auth check failed:", error);
+      } catch {
         setIsAuthenticated(false);
-      } finally {
-        setIsChecking(false);
       }
     };
 
     checkAuth();
   }, []);
 
-  const handleLogin = () => {
-    setIsAuthenticated(true);
+  const login = () => setIsAuthenticated(true);
+  const logout = () => {
+    localStorage.removeItem("sessionId");
+    setIsAuthenticated(false);
   };
 
-  if (isChecking) {
-    return null; // Or a loading spinner
-  }
+  return { isAuthenticated, login, logout };
+}
 
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
+function AppRouter() {
+  const { isAuthenticated, login, logout } = useAuth();
+  const [location] = useLocation();
+
+  if (isAuthenticated === null) {
+    return <LoadingScreen />;
   }
 
   return (
+    <Switch>
+      <Route path="/">
+        {isAuthenticated ? <Redirect to="/app" /> : <Landing />}
+      </Route>
+      
+      <Route path="/login">
+        {isAuthenticated ? <Redirect to="/app" /> : <LoginPage onLogin={login} />}
+      </Route>
+      
+      <Route path="/app">
+        {isAuthenticated ? <Dashboard onLogout={logout} /> : <Redirect to="/login" />}
+      </Route>
+      
+      <Route path="/app/settings">
+        {isAuthenticated ? <Settings onLogout={logout} /> : <Redirect to="/login" />}
+      </Route>
+      
+      <Route path="/settings">
+        {isAuthenticated ? <Settings onLogout={logout} /> : <Redirect to="/login" />}
+      </Route>
+      
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <AppRouter />
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

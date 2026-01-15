@@ -214,6 +214,61 @@ export async function registerRoutes(
     }
   });
 
+  // Stream video with Range header support (prevents lagging)
+  app.get("/api/videos/:id/stream", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const video = await storage.getVideo(id);
+
+      if (!video) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+
+      const filePath = path.join(uploadsDir, video.filename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Video file not found" });
+      }
+
+      const stat = fs.statSync(filePath);
+      const fileSize = stat.size;
+      const range = req.headers.range;
+
+      if (range) {
+        // Parse Range header
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = end - start + 1;
+
+        const stream = fs.createReadStream(filePath, { start, end });
+
+        res.writeHead(206, {
+          "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+          "Accept-Ranges": "bytes",
+          "Content-Length": chunkSize,
+          "Content-Type": video.mimeType || "video/mp4",
+          "Cache-Control": "no-cache",
+        });
+
+        stream.pipe(res);
+      } else {
+        // No Range header - send entire file with streaming support
+        res.writeHead(200, {
+          "Content-Length": fileSize,
+          "Content-Type": video.mimeType || "video/mp4",
+          "Accept-Ranges": "bytes",
+          "Cache-Control": "no-cache",
+        });
+
+        const stream = fs.createReadStream(filePath);
+        stream.pipe(res);
+      }
+    } catch (error) {
+      console.error("Stream error:", error);
+      res.status(500).json({ message: "Failed to stream video" });
+    }
+  });
+
   // ============ RTMP ENDPOINT ROUTES ============
 
   // Get all endpoints

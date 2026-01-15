@@ -55,8 +55,10 @@ For deploying on your own server (Ubuntu, Debian, etc.):
 
 ### Default Credentials
 
-- **Username**: admin (or any username - username is not validated)
-- **Password**: admin123
+- **Username**: admin (configurable via `ADMIN_USERNAME` env var)
+- **Password**: admin123 (configurable via `PASSWORD_HASH` env var)
+
+The install.sh script prompts for custom credentials during setup.
 
 ## User Preferences
 

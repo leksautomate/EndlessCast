@@ -171,14 +171,23 @@ brew install node@20 ffmpeg git
 
 ---
 
-## Default Credentials
+## Login Credentials
+
+During installation, you'll be prompted to set up your admin credentials:
+
+**Option 1: Custom Credentials (Recommended)**
+- Choose your own username and password
+- Password is securely hashed with bcrypt
+- Credentials are saved to `.env` file
+
+**Option 2: Default Credentials (Not recommended)**
 
 | Field | Value |
 |-------|-------|
-| **Username** | `admin` (or any username) |
+| **Username** | `admin` |
 | **Password** | `admin123` |
 
-**Important:** Change the password after first login by setting `PASSWORD_HASH` environment variable.
+**Important:** If using defaults, change the password immediately after first login.
 
 ---
 

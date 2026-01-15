@@ -87,16 +87,16 @@ export async function registerRoutes(
   // Login
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
-      const { password } = req.body;
+      const { username, password } = req.body;
 
-      if (!password) {
-        return res.status(400).json({ message: "Password required" });
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password required" });
       }
 
-      const isValid = await authService.verifyPassword(password);
+      const isValid = await authService.verifyCredentials(username, password);
 
       if (!isValid) {
-        return res.status(401).json({ message: "Invalid password" });
+        return res.status(401).json({ message: "Invalid username or password" });
       }
 
       const sessionId = authService.createSession();

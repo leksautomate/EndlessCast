@@ -4,9 +4,10 @@ import dotenv from "dotenv";
 // Load environment variables from .env file
 dotenv.config();
 
-// Default password: "admin123" (hash will be generated on first use)
-// User should change this via environment variable
+// Default credentials
+const DEFAULT_USERNAME = "admin";
 const DEFAULT_PASSWORD = "admin123";
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || DEFAULT_USERNAME;
 const PASSWORD_HASH = process.env.PASSWORD_HASH || "";
 
 // Session storage (in-memory, simple)
@@ -14,6 +15,7 @@ const sessions = new Map<string, { authenticated: boolean; expiresAt: number }>(
 
 export class AuthService {
     private passwordHash: string = PASSWORD_HASH;
+    private adminUsername: string = ADMIN_USERNAME;
 
     /**
      * Initialize password hash if not set
@@ -21,9 +23,17 @@ export class AuthService {
     async initialize() {
         if (!this.passwordHash) {
             console.warn("⚠️  No PASSWORD_HASH set in environment. Using default password 'admin123'");
-            console.warn("⚠️  Generate a hash by running: node -e \"const bcrypt=require('bcrypt');bcrypt.hash('your_password',10).then(h=>console.log(h))\"");
+            console.warn("⚠️  Run install.sh to configure custom credentials");
             this.passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
         }
+        console.log(`✓ Auth initialized for user: ${this.adminUsername}`);
+    }
+
+    /**
+     * Verify username
+     */
+    verifyUsername(username: string): boolean {
+        return username.toLowerCase() === this.adminUsername.toLowerCase();
     }
 
     /**
@@ -36,6 +46,16 @@ export class AuthService {
             console.error("Password verification error:", error);
             return false;
         }
+    }
+
+    /**
+     * Verify both username and password
+     */
+    async verifyCredentials(username: string, password: string): Promise<boolean> {
+        if (!this.verifyUsername(username)) {
+            return false;
+        }
+        return await this.verifyPassword(password);
     }
 
     /**

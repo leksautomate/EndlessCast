@@ -1,0 +1,46 @@
+
+^C
+root@vmi2546831:~/EndlessCast# ^C
+root@vmi2546831:~/EndlessCast# sudo cp endlesscast.service /etc/systemd/system/
+sudo systemctl enable endlesscast
+sudo systemctl start endlesscast
+Created symlink /etc/systemd/system/multi-user.target.wants/endlesscast.service → /etc/systemd/system/endlesscast.service.
+root@vmi2546831:~/EndlessCast# sudo systemctl restart endlesscast
+root@vmi2546831:~/EndlessCast# sudo systemctl status endlesscast
+● endlesscast.service - EndlessCast 24/7 Streaming Platform
+     Loaded: loaded (/etc/systemd/system/endlesscast.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-01-15 21:14:18 CET; 9s ago
+   Main PID: 458845 (start.sh)
+      Tasks: 45 (limit: 4652)
+     Memory: 670.6M (peak: 679.0M)
+        CPU: 11.615s
+     CGroup: /system.slice/endlesscast.service
+             ├─458845 /bin/bash /root/EndlessCast/start.sh
+             ├─458847 "npm run dev"
+             ├─458858 sh -c "NODE_ENV=development tsx server/index.ts"
+             ├─458859 node /root/EndlessCast/node_modules/.bin/tsx server/index.ts
+             ├─458870 /usr/bin/node --require /root/EndlessCast/node_modules/tsx/dist/preflight.cjs --import file:///root/EndlessCast/node_modules/tsx/dist/loader.mjs server/index.ts
+             └─458882 /root/EndlessCast/node_modules/vite/node_modules/@esbuild/linux-x64/bin/esbuild --service=0.21.5 --ping
+
+Jan 15 21:14:18 vmi2546831 start.sh[458845]: ╔═══════════════════════════════════════════════════════════╗
+Jan 15 21:14:18 vmi2546831 start.sh[458845]: ║             STARTING ENDLESSCAST SERVER                   ║
+Jan 15 21:14:18 vmi2546831 start.sh[458845]: ║                    Port: 5050                            ║
+Jan 15 21:14:18 vmi2546831 start.sh[458845]: ╚═══════════════════════════════════════════════════════════╝
+Jan 15 21:14:18 vmi2546831 start.sh[458845]: 
+Jan 15 21:14:19 vmi2546831 start.sh[458847]: > rest-express@1.0.0 dev
+Jan 15 21:14:19 vmi2546831 start.sh[458847]: > NODE_ENV=development tsx server/index.ts
+Jan 15 21:14:20 vmi2546831 start.sh[458870]: [dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+Jan 15 21:14:20 vmi2546831 start.sh[458870]: ✓ Auth initialized for user: Leksautomate
+Jan 15 21:14:22 vmi2546831 start.sh[458870]: 9:14:22 PM [express] serving on port 5050
+root@vmi2546831:~/EndlessCast# sudo journalctl -u endlesscast -f
+Jan 15 21:14:18 vmi2546831 start.sh[458845]: ╔═══════════════════════════════════════════════════════════╗
+Jan 15 21:14:18 vmi2546831 start.sh[458845]: ║             STARTING ENDLESSCAST SERVER                   ║
+Jan 15 21:14:18 vmi2546831 start.sh[458845]: ║                    Port: 5050                            ║
+Jan 15 21:14:18 vmi2546831 start.sh[458845]: ╚═══════════════════════════════════════════════════════════╝
+Jan 15 21:14:18 vmi2546831 start.sh[458845]: 
+Jan 15 21:14:19 vmi2546831 start.sh[458847]: > rest-express@1.0.0 dev
+Jan 15 21:14:19 vmi2546831 start.sh[458847]: > NODE_ENV=development tsx server/index.ts
+Jan 15 21:14:20 vmi2546831 start.sh[458870]: [dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+Jan 15 21:14:20 vmi2546831 start.sh[458870]: ✓ Auth initialized for user: Leksautomate
+Jan 15 21:14:22 vmi2546831 start.sh[458870]: 9:14:22 PM [express] serving on port 5050
+^C

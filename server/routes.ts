@@ -469,7 +469,17 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid telegram settings" });
       }
 
-      await storage.updateTelegramSettings(parsed.data);
+      let settingsToSave = parsed.data;
+      
+      // If token is masked (****), keep the existing token
+      if (settingsToSave.botToken === "****" || settingsToSave.botToken.includes("****")) {
+        const storedSettings = await storage.getTelegramSettings();
+        if (storedSettings && storedSettings.botToken) {
+          settingsToSave = { ...settingsToSave, botToken: storedSettings.botToken };
+        }
+      }
+
+      await storage.updateTelegramSettings(settingsToSave);
       res.json({ message: "Telegram settings updated" });
     } catch (error: any) {
       console.error("Telegram settings error:", error);
@@ -485,13 +495,25 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid telegram settings" });
       }
 
-      const success = await telegramService.testConnection(parsed.data);
+      let settingsToTest = parsed.data;
+      
+      // If token is masked (****), use the stored token instead
+      if (settingsToTest.botToken === "****" || settingsToTest.botToken.includes("****")) {
+        const storedSettings = await storage.getTelegramSettings();
+        if (!storedSettings || !storedSettings.botToken) {
+          return res.status(400).json({ message: "No saved bot token found. Please enter your bot token." });
+        }
+        settingsToTest = { ...settingsToTest, botToken: storedSettings.botToken };
+      }
+
+      const success = await telegramService.testConnection(settingsToTest);
       if (success) {
         res.json({ message: "Telegram connection successful" });
       } else {
         res.status(400).json({ message: "Failed to connect to Telegram. Check your bot token and chat ID." });
       }
     } catch (error: any) {
+      console.error("Telegram test error:", error);
       res.status(500).json({ message: error.message || "Telegram test failed" });
     }
   });

@@ -306,7 +306,8 @@ EOF
     echo ""
     
     echo -e "${BOLD}Default Login Credentials:${NC}"
-    echo -e "  ${CYAN}Password:${NC} admin"
+    echo -e "  ${CYAN}Username:${NC} admin ${YELLOW}(or any username)${NC}"
+    echo -e "  ${CYAN}Password:${NC} admin123"
     echo ""
     
     echo -e "${BOLD}Access your dashboard at:${NC}"

@@ -55,8 +55,8 @@ For deploying on your own server (Ubuntu, Debian, etc.):
 
 ### Default Credentials
 
-- **Username**: admin
-- **Password**: admin
+- **Username**: admin (or any username - username is not validated)
+- **Password**: admin123
 
 ## User Preferences
 

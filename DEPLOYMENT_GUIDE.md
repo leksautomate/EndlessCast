@@ -173,9 +173,12 @@ brew install node@20 ffmpeg git
 
 ## Default Credentials
 
-- **Password:** `admin`
+| Field | Value |
+|-------|-------|
+| **Username** | `admin` (or any username) |
+| **Password** | `admin123` |
 
-Change this after first login for security.
+**Important:** Change the password after first login by setting `PASSWORD_HASH` environment variable.
 
 ---
 

@@ -226,7 +226,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 Encrypted Connection Active
               </p>
               <p className="font-mono text-primary/50">
-                Default: admin / admin
+                Default: admin / admin123
               </p>
             </div>
           </CardContent>

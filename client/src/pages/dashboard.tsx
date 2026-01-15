@@ -338,76 +338,76 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 relative z-10">
-        <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground font-mono">
-          <Terminal className="w-3 h-3 text-primary" />
-          <span className="text-primary">root@endlesscast</span>
-          <ChevronRight className="w-3 h-3" />
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 relative z-10">
+        <div className="mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground font-mono overflow-x-auto">
+          <Terminal className="w-3 h-3 text-primary flex-shrink-0" />
+          <span className="text-primary whitespace-nowrap">root@endlesscast</span>
+          <ChevronRight className="w-3 h-3 flex-shrink-0" />
           <span className="text-foreground">dashboard</span>
           <span className="animate-pulse">_</span>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <Card className="border-primary/20 bg-card/50 backdrop-blur">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
                   <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Status</p>
-                  <p className={`text-lg font-bold font-mono ${streamingState?.isStreaming ? 'text-green-500' : 'text-muted-foreground'}`}>
-                    {streamingState?.isStreaming ? 'STREAMING' : 'OFFLINE'}
+                  <p className={`text-base sm:text-lg font-bold font-mono truncate ${streamingState?.isStreaming ? 'text-green-500' : 'text-muted-foreground'}`}>
+                    {streamingState?.isStreaming ? 'LIVE' : 'OFF'}
                   </p>
                 </div>
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${streamingState?.isStreaming ? 'bg-green-500/20 border border-green-500/30' : 'bg-muted/20 border border-muted/30'}`}>
-                  <Activity className={`w-5 h-5 ${streamingState?.isStreaming ? 'text-green-500 animate-pulse' : 'text-muted-foreground'}`} />
+                <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${streamingState?.isStreaming ? 'bg-green-500/20 border border-green-500/30' : 'bg-muted/20 border border-muted/30'}`}>
+                  <Activity className={`w-4 h-4 sm:w-5 sm:h-5 ${streamingState?.isStreaming ? 'text-green-500 animate-pulse' : 'text-muted-foreground'}`} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-primary/20 bg-card/50 backdrop-blur">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
                   <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Uptime</p>
-                  <p className="text-lg font-bold font-mono text-primary">
+                  <p className="text-base sm:text-lg font-bold font-mono text-primary truncate">
                     {formatUptime(streamingState?.startedAt)}
                   </p>
                 </div>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/30">
-                  <Clock className="w-5 h-5 text-primary" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/30 flex-shrink-0">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-primary/20 bg-card/50 backdrop-blur">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
                   <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Endpoints</p>
-                  <p className="text-lg font-bold font-mono text-foreground">
+                  <p className="text-base sm:text-lg font-bold font-mono text-foreground">
                     <span className="text-green-500">{liveEndpoints}</span>
                     <span className="text-muted-foreground text-sm">/{enabledEndpoints.length}</span>
                   </p>
                 </div>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/30">
-                  <Radio className="w-5 h-5 text-primary" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/30 flex-shrink-0">
+                  <Radio className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-primary/20 bg-card/50 backdrop-blur">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
                   <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Storage</p>
-                  <p className="text-lg font-bold font-mono text-foreground">
+                  <p className="text-base sm:text-lg font-bold font-mono text-foreground">
                     {storageInfo ? `${((storageInfo.used / storageInfo.limit) * 100).toFixed(0)}%` : '0%'}
                   </p>
                 </div>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/30">
-                  <Database className="w-5 h-5 text-primary" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/30 flex-shrink-0">
+                  <Database className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
               </div>
               {storageInfo && (
@@ -418,7 +418,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                       style={{ width: `${(storageInfo.used / storageInfo.limit) * 100}%` }}
                     />
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1 font-mono">
+                  <p className="text-[10px] text-muted-foreground mt-1 font-mono truncate">
                     {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.limit)}
                   </p>
                 </div>
@@ -464,7 +464,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           </Card>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-4 mb-6">
+        <div className="grid lg:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <Card className="border-primary/20 bg-card/50 backdrop-blur">
             <CardHeader className="pb-3 border-b border-primary/10">
               <CardTitle className="text-sm font-mono flex items-center gap-2">

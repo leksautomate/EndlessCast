@@ -74,7 +74,7 @@ export function VideoLibrary({
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-primary hover:bg-muted/50"
+            className="border-2 border-dashed rounded-lg p-4 sm:p-6 text-center cursor-pointer transition-colors hover:border-primary hover:bg-muted/50"
             data-testid="upload-zone"
           >
             <input
@@ -87,18 +87,18 @@ export function VideoLibrary({
             />
             {isUploading ? (
               <div className="flex flex-col items-center gap-2">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                <p className="text-sm text-muted-foreground">Uploading video...</p>
+                <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-spin" />
+                <p className="text-xs sm:text-sm text-muted-foreground">Uploading...</p>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                  <Upload className="w-6 h-6 text-muted-foreground" />
+              <div className="flex flex-col items-center gap-1.5 sm:gap-2">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center">
+                  <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Drop video here or click to upload</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    MP4, MOV, MKV up to 10GB total
+                  <p className="text-xs sm:text-sm font-medium">Tap to upload video</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
+                    MP4, MOV, MKV
                   </p>
                 </div>
               </div>
@@ -140,18 +140,18 @@ export function VideoLibrary({
                   data-testid={`video-card-${video.id}`}
                 >
                   {/* Thumbnail placeholder */}
-                  <div className="w-24 h-16 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                  <div className="hidden sm:flex w-24 h-16 rounded bg-muted items-center justify-center flex-shrink-0">
                     <Play className="w-6 h-6 text-muted-foreground" />
                   </div>
                   
                   {/* Video info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate" data-testid={`text-video-name-${video.id}`}>
                           {video.originalName}
                         </p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="text-xs text-muted-foreground" data-testid={`text-video-duration-${video.id}`}>
                             {formatDuration(video.duration)}
                           </span>

@@ -238,26 +238,27 @@ export default function Settings({ onLogout }: SettingsProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-background p-3 sm:p-6">
+      <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Button
             size="icon"
             variant="ghost"
             onClick={() => setLocation("/app")}
+            className="h-8 w-8 sm:h-9 sm:w-9"
             data-testid="button-back"
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded border border-primary/50 flex items-center justify-center bg-primary/10">
-              <Wifi className="w-5 h-5 text-primary" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded border border-primary/50 flex items-center justify-center bg-primary/10">
+              <Wifi className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-primary glow-sm" data-testid="heading-settings">
-                System Settings
+              <h1 className="text-lg sm:text-2xl font-bold text-primary glow-sm" data-testid="heading-settings">
+                Settings
               </h1>
-              <p className="text-sm text-muted-foreground font-mono">
+              <p className="text-xs sm:text-sm text-muted-foreground font-mono hidden sm:block">
                 <span className="text-primary">&gt;</span> Configure EndlessCast
               </p>
             </div>
@@ -265,39 +266,41 @@ export default function Settings({ onLogout }: SettingsProps) {
         </div>
 
         <Tabs defaultValue="theme" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-card border border-primary/20">
-            <TabsTrigger value="theme" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              <Palette className="w-4 h-4 mr-2" />
-              Theme
+          <TabsList className="grid w-full grid-cols-3 bg-card border border-primary/20 h-auto">
+            <TabsTrigger value="theme" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary text-xs sm:text-sm py-2 sm:py-2.5">
+              <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Theme</span>
+              <span className="sm:hidden">Theme</span>
             </TabsTrigger>
-            <TabsTrigger value="telegram" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              <SiTelegram className="w-4 h-4 mr-2" />
-              Telegram
+            <TabsTrigger value="telegram" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary text-xs sm:text-sm py-2 sm:py-2.5">
+              <SiTelegram className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Telegram</span>
+              <span className="sm:hidden">TG</span>
             </TabsTrigger>
-            <TabsTrigger value="email" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              <Mail className="w-4 h-4 mr-2" />
+            <TabsTrigger value="email" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary text-xs sm:text-sm py-2 sm:py-2.5">
+              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Email
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="theme" className="space-y-4 mt-6">
+          <TabsContent value="theme" className="space-y-3 sm:space-y-4 mt-4 sm:mt-6">
             <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-foreground">
-                  <Palette className="w-5 h-5 text-primary" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-foreground text-base sm:text-lg">
+                  <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                   Color Theme
                 </CardTitle>
-                <CardDescription>
-                  Choose your preferred interface color scheme
+                <CardDescription className="text-xs sm:text-sm">
+                  Choose your color scheme
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-0 sm:pt-0">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 gap-2 sm:gap-3">
                   {(Object.keys(themePresets) as ThemeColor[]).filter(t => t !== 'custom').map((themeKey) => (
                     <button
                       key={themeKey}
                       onClick={() => setTheme(themeKey)}
-                      className={`p-4 rounded border transition-all ${
+                      className={`p-2 sm:p-4 rounded border transition-all ${
                         theme === themeKey 
                           ? 'border-primary bg-primary/10 box-glow-sm' 
                           : 'border-primary/20 hover:border-primary/40'
@@ -305,31 +308,31 @@ export default function Settings({ onLogout }: SettingsProps) {
                       data-testid={`button-theme-${themeKey}`}
                     >
                       <div 
-                        className="w-8 h-8 rounded-full mx-auto mb-2 border-2"
+                        className="w-6 h-6 sm:w-8 sm:h-8 rounded-full mx-auto mb-1 sm:mb-2 border-2"
                         style={{ 
                           backgroundColor: themePresets[themeKey].primary,
                           borderColor: themePresets[themeKey].accent 
                         }}
                       />
-                      <p className="text-sm text-center font-mono">
-                        {themePresets[themeKey].name}
+                      <p className="text-[10px] sm:text-sm text-center font-mono truncate">
+                        {themePresets[themeKey].name.split(' ')[0]}
                       </p>
                       {theme === themeKey && (
-                        <CheckCircle className="w-4 h-4 text-primary mx-auto mt-2" />
+                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-primary mx-auto mt-1 sm:mt-2" />
                       )}
                     </button>
                   ))}
                 </div>
 
-                <div className="pt-4 border-t border-primary/10">
+                <div className="pt-3 sm:pt-4 border-t border-primary/10 hidden sm:block">
                   <h3 className="text-sm font-semibold mb-4 text-foreground">Preview</h3>
                   <div className="bg-card/50 border border-primary/20 rounded p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
                       <span className="text-sm font-mono text-primary">Primary Color</span>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm">Primary Button</Button>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button size="sm">Primary</Button>
                       <Button size="sm" variant="outline">Outline</Button>
                       <Button size="sm" variant="ghost">Ghost</Button>
                     </div>

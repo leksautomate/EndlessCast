@@ -58,32 +58,32 @@ export function StreamingControls({
 
   return (
     <Card className={`overflow-hidden transition-all ${isStreaming ? "ring-2 ring-status-online" : ""}`}>
-      <CardContent className="p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex flex-col gap-4 sm:gap-6">
           {/* Video Preview */}
-          <div className="flex items-center gap-4 flex-1">
-            <div className="w-20 h-14 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-14 h-10 sm:w-20 sm:h-14 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
               {selectedVideo ? (
-                <Film className="w-6 h-6 text-muted-foreground" />
+                <Film className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
               ) : (
-                <AlertCircle className="w-6 h-6 text-muted-foreground" />
+                <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
               )}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               {selectedVideo ? (
                 <>
-                  <p className="font-medium truncate" data-testid="text-selected-video">
+                  <p className="font-medium text-sm sm:text-base truncate" data-testid="text-selected-video">
                     {selectedVideo.originalName}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDuration(selectedVideo.duration)} • Looping to {enabledEndpointsCount} endpoint{enabledEndpointsCount !== 1 ? "s" : ""}
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {formatDuration(selectedVideo.duration)} • {enabledEndpointsCount} endpoint{enabledEndpointsCount !== 1 ? "s" : ""}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="font-medium text-muted-foreground">No video selected</p>
-                  <p className="text-sm text-muted-foreground">
-                    Select a video from your library to stream
+                  <p className="font-medium text-sm sm:text-base text-muted-foreground">No video selected</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Select a video from your library
                   </p>
                 </>
               )}
@@ -91,11 +91,11 @@ export function StreamingControls({
           </div>
 
           {/* Status and Controls */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             {/* Duration Settings (only show when not streaming) */}
             {!isStreaming && (
-              <div className="flex items-end gap-2 mr-2">
-                <div className="grid gap-1.5">
+              <div className="flex items-end gap-2">
+                <div className="grid gap-1.5 flex-1 sm:flex-none">
                   <Label htmlFor="hours" className="text-xs">Hours</Label>
                   <Input
                     id="hours"
@@ -103,10 +103,10 @@ export function StreamingControls({
                     min="0"
                     value={hours}
                     onChange={(e) => setHours(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="w-16 h-9"
+                    className="w-full sm:w-16 h-9"
                   />
                 </div>
-                <div className="grid gap-1.5">
+                <div className="grid gap-1.5 flex-1 sm:flex-none">
                   <Label htmlFor="minutes" className="text-xs">Minutes</Label>
                   <Input
                     id="minutes"
@@ -115,16 +115,16 @@ export function StreamingControls({
                     max="59"
                     value={minutes}
                     onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
-                    className="w-16 h-9"
+                    className="w-full sm:w-16 h-9"
                   />
                 </div>
               </div>
             )}
 
             {/* Stream Status */}
-            <div className="text-right">
+            <div className="flex-1 sm:flex-none">
               {isStreaming ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                   <div className="flex items-center gap-1.5">
                     <span className="relative flex h-2.5 w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-online opacity-75"></span>
@@ -134,11 +134,9 @@ export function StreamingControls({
                       LIVE
                     </Badge>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-mono font-semibold tabular-nums" data-testid="text-stream-duration">
-                      {formatDuration(elapsedTime)}
-                    </p>
-                  </div>
+                  <p className="text-xl sm:text-2xl font-mono font-semibold tabular-nums" data-testid="text-stream-duration">
+                    {formatDuration(elapsedTime)}
+                  </p>
                 </div>
               ) : (
                 <Badge variant="secondary" className="text-muted-foreground">
@@ -149,14 +147,14 @@ export function StreamingControls({
             </div>
 
             {/* Main Control Button */}
-            <div>
+            <div className="w-full sm:w-auto">
               {isStreaming ? (
                 <Button
                   size="lg"
                   variant="destructive"
                   onClick={onStop}
                   disabled={isStopping}
-                  className="min-w-[140px]"
+                  className="w-full sm:w-auto sm:min-w-[140px]"
                   data-testid="button-stop-stream"
                 >
                   {isStopping ? (
@@ -171,7 +169,7 @@ export function StreamingControls({
                   size="lg"
                   onClick={handleStart}
                   disabled={!canStart || isStarting}
-                  className="min-w-[140px]"
+                  className="w-full sm:w-auto sm:min-w-[140px]"
                   data-testid="button-start-stream"
                 >
                   {isStarting ? (

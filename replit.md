@@ -6,10 +6,12 @@ EndlessCast is a web application that enables users to upload videos and stream 
 
 ## Recent Changes (January 15, 2026)
 
+- **Storage Increase**: Expanded storage limit from 50GB to 200GB, max videos from 4 to 16
+- **Mobile Responsiveness**: Improved responsive design across dashboard, settings, video library, and streaming controls
+- **Content Streaming API**: Added video streaming endpoint with Range header support for better playback performance
 - **Install Script**: Added comprehensive `install.sh` with ASCII art, port selection (8 options + custom), dependency checks, and systemd service generation
 - **Dashboard Redesign**: Enhanced hacker/terminal aesthetic with stats cards, radial gradient background, live clock display, and improved visual hierarchy
 - **Telegram Integration Fix**: Bot token now properly preserved when form sends masked "****" value after page reload
-- **Code Quality**: Fixed React timer bug (moved interval to useEffect), removed unused imports
 
 ## User Preferences
 

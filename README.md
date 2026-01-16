@@ -122,6 +122,90 @@ The installer allows you to set custom credentials during setup.
 | `MINIO_SECRET_KEY` | MinIO secret key (optional) | - |
 | `MINIO_BUCKET` | MinIO bucket name (optional) | - |
 
+## Notifications Setup
+
+EndlessCast can send you alerts via Telegram and Email when streams fail or the server crashes.
+
+### Telegram Notifications
+
+1. Create a Telegram bot via [@BotFather](https://t.me/BotFather)
+2. Get your bot token (e.g., `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
+3. Get your Chat ID by messaging [@userinfobot](https://t.me/userinfobot)
+4. Go to **Settings > Telegram** in EndlessCast
+5. Enter your Bot Token and Chat ID
+6. Enable notifications for: Start, Stop, and/or Errors
+7. Click **Test Connection** to verify
+
+### Email Notifications (Gmail)
+
+1. Enable 2-Factor Authentication on your Gmail account
+2. Generate an App Password: [Google App Passwords](https://myaccount.google.com/apppasswords)
+3. Go to **Settings > Email** in EndlessCast
+4. Enter your Gmail address and App Password
+5. Enable "Notify on Error"
+6. Click **Test Connection** to verify
+
+### What You'll Be Notified About
+
+- **Stream Started** - When streaming begins
+- **Stream Stopped** - When streaming ends
+- **Stream Error** - When a stream to a platform fails
+- **Server Crash** - When the server encounters a critical error
+- **Server Restart** - When the server comes back online
+
+## Troubleshooting
+
+### Server Crashes After Hours of Streaming
+
+If your server crashes and data is lost:
+
+1. **Update to latest version** - We added persistent storage that saves all data to disk
+   ```bash
+   cd ~/EndlessCast
+   git pull
+   sudo systemctl restart endlesscast
+   ```
+
+2. **Check memory usage** - Long streams may use more memory
+   ```bash
+   free -h
+   htop
+   ```
+
+3. **View crash logs**
+   ```bash
+   sudo journalctl -u endlesscast --since "1 hour ago"
+   ```
+
+### Cannot Access Dashboard (Connection Timeout)
+
+1. **Check if service is running**
+   ```bash
+   sudo systemctl status endlesscast
+   ```
+
+2. **Open firewall port**
+   ```bash
+   sudo ufw allow YOUR_PORT/tcp
+   sudo ufw reload
+   ```
+
+3. **Check cloud provider firewall** - AWS, DigitalOcean, Contabo, etc. have separate security group settings
+
+### Stream Keeps Stopping
+
+1. **Check FFmpeg logs**
+   ```bash
+   sudo journalctl -u endlesscast -f
+   ```
+
+2. **Verify RTMP credentials** - Stream keys expire on some platforms
+
+3. **Check internet connection**
+   ```bash
+   ping -c 5 google.com
+   ```
+
 ## Supported Platforms
 
 - YouTube Live

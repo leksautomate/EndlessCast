@@ -4,7 +4,12 @@
 
 EndlessCast is a web application that enables users to upload videos and stream them continuously (24/7) to multiple RTMP endpoints simultaneously. The platform supports major streaming services like YouTube Live, Facebook Live, Rumble, Odysee, and Twitter/X, as well as custom RTMP destinations. Users can manage a video library (up to 200GB storage with 16 videos max), configure RTMP endpoints, and control streaming with real-time status monitoring, email/Telegram notifications, and CDN integration.
 
-## Recent Changes (January 15, 2026)
+## Recent Changes (January 16, 2026)
+
+- **Persistent Storage**: Added file-based persistent storage to save videos, RTMP endpoints, and all settings to disk. Data now survives server restarts.
+- **Data Persistence**: All metadata (videos, RTMP endpoints, playlists, email/Telegram/theme settings) saved to `data/storage.json` with debounced auto-save
+
+## Previous Changes (January 15, 2026)
 
 - **Storage Increase**: Expanded storage limit from 50GB to 200GB, max videos from 4 to 16
 - **Mobile Responsiveness**: Improved responsive design across dashboard, settings, video library, and streaming controls

@@ -2,9 +2,38 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { telegramService } from "./telegram";
+import { emailService } from "./email";
+import { storage } from "./storage";
 
 const app = express();
 const httpServer = createServer(app);
+
+async function sendCrashNotification(errorType: string, errorMessage: string): Promise<void> {
+  try {
+    await telegramService.notifyServerCrash(errorType, errorMessage);
+    
+    const emailSettings = await storage.getEmailSettings();
+    if (emailSettings) {
+      await emailService.sendCrashAlert(emailSettings, errorType, errorMessage);
+    }
+  } catch (notifyError) {
+    console.error("Failed to send crash notification:", notifyError);
+  }
+}
+
+process.on("uncaughtException", async (error) => {
+  console.error("UNCAUGHT EXCEPTION:", error);
+  await sendCrashNotification("Uncaught Exception", error.stack || error.message);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", async (reason) => {
+  const errorMessage = reason instanceof Error ? reason.stack || reason.message : String(reason);
+  console.error("UNHANDLED REJECTION:", errorMessage);
+  await sendCrashNotification("Unhandled Promise Rejection", errorMessage);
+  process.exit(1);
+});
 
 declare module "http" {
   interface IncomingMessage {
@@ -96,8 +125,9 @@ app.use((req, res, next) => {
       port,
       host: "0.0.0.0",
     },
-    () => {
+    async () => {
       log(`serving on port ${port}`);
+      await telegramService.notifyServerStart();
     },
   );
 })();

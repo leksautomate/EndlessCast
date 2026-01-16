@@ -106,6 +106,49 @@ class EmailService {
       return false;
     }
   }
+
+  async sendCrashAlert(
+    settings: EmailSettings,
+    errorType: string,
+    errorMessage: string
+  ): Promise<boolean> {
+    if (!settings.enabled || !settings.notifyOnError) {
+      return false;
+    }
+
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: settings.gmailAddress,
+          pass: settings.gmailAppPassword,
+        },
+      });
+
+      const subject = `EndlessCast Server Crash Alert`;
+      const html = `
+        <h2 style="color: red;">Server Crash Alert</h2>
+        <p><strong>Error Type:</strong> ${errorType}</p>
+        <p><strong>Error:</strong> ${errorMessage.substring(0, 1000)}</p>
+        <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+        <hr/>
+        <p>The server encountered a critical error and may restart automatically via systemd.</p>
+      `;
+
+      await transporter.sendMail({
+        from: settings.gmailAddress,
+        to: settings.gmailAddress,
+        subject,
+        html,
+      });
+
+      console.log("Crash alert email sent");
+      return true;
+    } catch (error) {
+      console.error("Failed to send crash alert email:", error);
+      return false;
+    }
+  }
 }
 
 export const emailService = new EmailService();

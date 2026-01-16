@@ -78,6 +78,34 @@ Your Telegram notifications are now configured.`;
 
     return this.sendMessage(settings, message);
   }
+
+  async notifyServerCrash(errorType: string, errorMessage: string): Promise<void> {
+    const settings = await storage.getTelegramSettings();
+    if (!settings?.enabled || !settings.notifyOnError) return;
+
+    const message = `<b>SERVER CRASH</b>
+
+<code>Type:</code> ${errorType}
+<code>Error:</code> ${errorMessage.substring(0, 500)}
+<code>Time:</code> ${new Date().toLocaleString()}
+
+Status: CRITICAL - Server is restarting...`;
+
+    await this.sendMessage(settings, message);
+  }
+
+  async notifyServerStart(): Promise<void> {
+    const settings = await storage.getTelegramSettings();
+    if (!settings?.enabled) return;
+
+    const message = `<b>SERVER STARTED</b>
+
+<code>Time:</code> ${new Date().toLocaleString()}
+
+Status: ONLINE - EndlessCast is ready`;
+
+    await this.sendMessage(settings, message);
+  }
 }
 
 export const telegramService = new TelegramService();

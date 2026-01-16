@@ -3,7 +3,6 @@ dist
 .DS_Store
 server/public
 vite.config.ts.*
-*.tar.gzuploads/
-*.mp4
 uploads/
 *.mp4
+data/

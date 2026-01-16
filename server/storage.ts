@@ -1,6 +1,21 @@
 import { randomUUID } from "crypto";
+import * as fs from "fs";
+import * as path from "path";
 import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, EmailSettings, InsertEmailSettings, ThemeSettings, InsertThemeSettings, TelegramSettings, InsertTelegramSettings } from "@shared/schema";
 import { MAX_STORAGE_BYTES, MAX_VIDEOS } from "@shared/schema";
+
+const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_FILE = path.join(DATA_DIR, "storage.json");
+
+interface StorageData {
+  videos: Record<string, Video>;
+  rtmpEndpoints: Record<string, RtmpEndpoint>;
+  playlists: Record<string, Playlist>;
+  scheduledStreams: Record<string, ScheduledStream>;
+  emailSettings: EmailSettings | null;
+  themeSettings: ThemeSettings | null;
+  telegramSettings: TelegramSettings | null;
+}
 
 export interface IStorage {
   // Video operations
@@ -58,6 +73,7 @@ export class MemStorage implements IStorage {
   private emailSettings: EmailSettings | null;
   private themeSettings: ThemeSettings | null;
   private telegramSettings: TelegramSettings | null;
+  private saveTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
     this.videos = new Map();
@@ -75,6 +91,68 @@ export class MemStorage implements IStorage {
       endpointStatuses: [],
       stats: [],
     };
+
+    this.loadFromDisk();
+  }
+
+  private ensureDataDir(): void {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  }
+
+  private loadFromDisk(): void {
+    try {
+      this.ensureDataDir();
+      
+      if (fs.existsSync(DATA_FILE)) {
+        const raw = fs.readFileSync(DATA_FILE, "utf-8");
+        const data: StorageData = JSON.parse(raw);
+        
+        this.videos = new Map(Object.entries(data.videos || {}));
+        this.rtmpEndpoints = new Map(Object.entries(data.rtmpEndpoints || {}));
+        this.playlists = new Map(Object.entries(data.playlists || {}));
+        this.scheduledStreams = new Map(Object.entries(data.scheduledStreams || {}));
+        this.emailSettings = data.emailSettings || null;
+        this.themeSettings = data.themeSettings || null;
+        this.telegramSettings = data.telegramSettings || null;
+        
+        console.log(`✓ Loaded ${this.videos.size} videos, ${this.rtmpEndpoints.size} RTMP endpoints from disk`);
+      } else {
+        console.log("✓ No existing data file, starting fresh");
+      }
+    } catch (error) {
+      console.error("⚠ Error loading data from disk:", error);
+    }
+  }
+
+  private scheduleSave(): void {
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+    }
+    this.saveTimeout = setTimeout(() => this.saveToDisk(), 500);
+  }
+
+  private saveToDisk(): void {
+    try {
+      this.ensureDataDir();
+      
+      const data: StorageData = {
+        videos: Object.fromEntries(this.videos),
+        rtmpEndpoints: Object.fromEntries(this.rtmpEndpoints),
+        playlists: Object.fromEntries(this.playlists),
+        scheduledStreams: Object.fromEntries(this.scheduledStreams),
+        emailSettings: this.emailSettings,
+        themeSettings: this.themeSettings,
+        telegramSettings: this.telegramSettings,
+      };
+      
+      const tempFile = DATA_FILE + ".tmp";
+      fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), "utf-8");
+      fs.renameSync(tempFile, DATA_FILE);
+    } catch (error) {
+      console.error("⚠ Error saving data to disk:", error);
+    }
   }
 
   // Video operations
@@ -92,15 +170,19 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const newVideo: Video = { ...video, id };
     this.videos.set(id, newVideo);
+    this.scheduleSave();
     return newVideo;
   }
 
   async deleteVideo(id: string): Promise<boolean> {
-    // If this video is selected, deselect it
     if (this.streamingState.selectedVideoId === id) {
       this.streamingState.selectedVideoId = null;
     }
-    return this.videos.delete(id);
+    const result = this.videos.delete(id);
+    if (result) {
+      this.scheduleSave();
+    }
+    return result;
   }
 
   // RTMP endpoint operations
@@ -116,6 +198,7 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const newEndpoint: RtmpEndpoint = { ...endpoint, id };
     this.rtmpEndpoints.set(id, newEndpoint);
+    this.scheduleSave();
     return newEndpoint;
   }
 
@@ -125,15 +208,19 @@ export class MemStorage implements IStorage {
 
     const updated: RtmpEndpoint = { ...existing, ...data };
     this.rtmpEndpoints.set(id, updated);
+    this.scheduleSave();
     return updated;
   }
 
   async deleteRtmpEndpoint(id: string): Promise<boolean> {
-    // Remove from endpoint statuses
     this.streamingState.endpointStatuses = this.streamingState.endpointStatuses.filter(
       s => s.endpointId !== id
     );
-    return this.rtmpEndpoints.delete(id);
+    const result = this.rtmpEndpoints.delete(id);
+    if (result) {
+      this.scheduleSave();
+    }
+    return result;
   }
 
   // Streaming state operations
@@ -168,6 +255,7 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const newPlaylist: Playlist = { ...playlist, id, createdAt: new Date().toISOString() };
     this.playlists.set(id, newPlaylist);
+    this.scheduleSave();
     return newPlaylist;
   }
 
@@ -176,6 +264,7 @@ export class MemStorage implements IStorage {
     if (!existing) return undefined;
     const updated: Playlist = { ...existing, ...data };
     this.playlists.set(id, updated);
+    this.scheduleSave();
     return updated;
   }
 
@@ -184,7 +273,11 @@ export class MemStorage implements IStorage {
       this.streamingState.selectedPlaylistId = null;
       this.streamingState.playlistIndex = 0;
     }
-    return this.playlists.delete(id);
+    const result = this.playlists.delete(id);
+    if (result) {
+      this.scheduleSave();
+    }
+    return result;
   }
 
   // Scheduled stream operations
@@ -196,6 +289,7 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const newStream: ScheduledStream = { ...stream, id, createdAt: new Date().toISOString() };
     this.scheduledStreams.set(id, newStream);
+    this.scheduleSave();
     return newStream;
   }
 
@@ -204,11 +298,16 @@ export class MemStorage implements IStorage {
     if (!existing) return undefined;
     const updated: ScheduledStream = { ...existing, ...data };
     this.scheduledStreams.set(id, updated);
+    this.scheduleSave();
     return updated;
   }
 
   async deleteScheduledStream(id: string): Promise<boolean> {
-    return this.scheduledStreams.delete(id);
+    const result = this.scheduledStreams.delete(id);
+    if (result) {
+      this.scheduleSave();
+    }
+    return result;
   }
 
   // Email settings operations
@@ -218,6 +317,7 @@ export class MemStorage implements IStorage {
 
   async updateEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings> {
     this.emailSettings = settings;
+    this.scheduleSave();
     return this.emailSettings;
   }
 
@@ -228,6 +328,7 @@ export class MemStorage implements IStorage {
 
   async updateThemeSettings(settings: InsertThemeSettings): Promise<ThemeSettings> {
     this.themeSettings = settings;
+    this.scheduleSave();
     return this.themeSettings;
   }
 
@@ -238,6 +339,7 @@ export class MemStorage implements IStorage {
 
   async updateTelegramSettings(settings: InsertTelegramSettings): Promise<TelegramSettings> {
     this.telegramSettings = settings;
+    this.scheduleSave();
     return this.telegramSettings;
   }
 

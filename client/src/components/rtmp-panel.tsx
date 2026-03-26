@@ -347,6 +347,7 @@ export function RtmpPanel({
     rtmpUrl: platformInfo.youtube.defaultUrl,
     streamKey: "",
     enabled: true,
+    outputProfile: "landscape_1080p",
   });
 
   const handlePlatformChange = (platform: RtmpPlatform) => {
@@ -370,6 +371,7 @@ export function RtmpPanel({
         rtmpUrl: platformInfo.youtube.defaultUrl,
         streamKey: "",
         enabled: true,
+        outputProfile: "landscape_1080p",
       });
       setIsDialogOpen(false);
     }
@@ -668,6 +670,7 @@ export function RtmpPanel({
                         rtmpUrl: platformInfo[platform].defaultUrl,
                         streamKey: "",
                         enabled: true,
+                        outputProfile: "landscape_1080p",
                       });
                       setIsDialogOpen(true);
                     }}

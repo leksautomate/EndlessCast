@@ -6,9 +6,8 @@ import type { RtmpEndpoint } from "@shared/schema";
 import { outputProfileInfo } from "@shared/schema";
 import path from "path";
 
-const MAX_RECONNECT_ATTEMPTS = 10;
-const RECONNECT_DELAY_BASE_MS = 5000;
-const RECONNECT_DELAY_MAX_MS = 120000;
+const MAX_RECONNECT_ATTEMPTS = 3;
+const RECONNECT_DELAY_MS = 5000;
 
 interface StreamProcess {
   endpointId: string;
@@ -28,7 +27,6 @@ class StreamingService {
   private processes: Map<string, StreamProcess> = new Map();
   private reconnectStates: Map<string, ReconnectState> = new Map();
   private monitorInterval: NodeJS.Timeout | null = null;
-  private globalDuration: number = 42900;
 
   async startStreaming(durationSeconds?: number): Promise<void> {
     const state = await storage.getStreamingState();
@@ -49,7 +47,7 @@ class StreamingService {
       throw new Error("No RTMP endpoints configured");
     }
 
-    this.globalDuration = durationSeconds || 42900;
+    const limit = durationSeconds || 42900;
 
     await storage.setStreamingState({
       isStreaming: true,
@@ -64,7 +62,7 @@ class StreamingService {
     const videoSource = path.join(process.cwd(), "uploads", video.filename);
 
     for (const endpoint of enabledEndpoints) {
-      await this.startEndpointStream(videoSource, endpoint, this.globalDuration, false);
+      await this.startEndpointStream(videoSource, endpoint, limit, false);
     }
 
     await telegramService.notifyStreamStart(enabledEndpoints.map(e => e.name));
@@ -173,7 +171,6 @@ class StreamingService {
       }
 
       const isCleanExit = code === 0 || code === 255;
-
       if (isCleanExit) {
         await storage.updateEndpointStatus(endpoint.id, { status: "stopped" });
         return;
@@ -198,11 +195,11 @@ class StreamingService {
     setTimeout(async () => {
       const proc = this.processes.get(endpoint.id);
       if (proc && !proc.ffmpegProcess.killed) {
-        const currentState = this.reconnectStates.get(endpoint.id);
+        const currentRs = this.reconnectStates.get(endpoint.id);
         await storage.updateEndpointStatus(endpoint.id, {
           status: "live",
           startedAt: new Date().toISOString(),
-          reconnectCount: currentState?.attempts ?? 0,
+          reconnectCount: currentRs?.attempts ?? 0,
           nextReconnectAt: undefined,
         });
       }
@@ -217,8 +214,16 @@ class StreamingService {
     let rs = this.reconnectStates.get(endpoint.id);
 
     if (!rs) {
-      rs = { endpointId: endpoint.id, attempts: 0, timer: null, videoSource, endpoint, durationSeconds };
-      this.reconnectStates.set(endpoint.id, rs);
+      const newRs: ReconnectState = {
+        endpointId: endpoint.id,
+        attempts: 0,
+        timer: null,
+        videoPath: videoSource,
+        endpoint,
+        durationSeconds,
+      };
+      this.reconnectStates.set(endpoint.id, newRs);
+      rs = newRs;
     }
 
     rs.attempts += 1;
@@ -234,13 +239,8 @@ class StreamingService {
       return;
     }
 
-    const delayMs = Math.min(
-      RECONNECT_DELAY_BASE_MS * Math.pow(2, rs.attempts - 1),
-      RECONNECT_DELAY_MAX_MS,
-    );
-
-    const nextReconnectAt = new Date(Date.now() + delayMs).toISOString();
-    console.log(`[${endpoint.name}] Reconnect attempt ${rs.attempts}/${MAX_RECONNECT_ATTEMPTS} in ${delayMs / 1000}s`);
+    const nextReconnectAt = new Date(Date.now() + RECONNECT_DELAY_MS).toISOString();
+    console.log(`[${endpoint.name}] Reconnect attempt ${rs.attempts}/${MAX_RECONNECT_ATTEMPTS} in ${RECONNECT_DELAY_MS / 1000}s`);
 
     await storage.updateEndpointStatus(endpoint.id, {
       status: "reconnecting",
@@ -250,7 +250,8 @@ class StreamingService {
 
     if (rs.timer) clearTimeout(rs.timer);
 
-    rs.timer = setTimeout(async () => {
+    const capturedRs = rs;
+    capturedRs.timer = setTimeout(async () => {
       const state = await storage.getStreamingState();
       if (!state.isStreaming) {
         this.reconnectStates.delete(endpoint.id);
@@ -263,18 +264,17 @@ class StreamingService {
         return;
       }
 
-      await this.startEndpointStream(videoSource, latestEndpoint, durationSeconds, true);
-    }, delayMs);
+      await this.startEndpointStream(capturedRs.videoPath, latestEndpoint, capturedRs.durationSeconds, true);
+    }, RECONNECT_DELAY_MS);
   }
 
   async stopStreaming(): Promise<void> {
-    for (const [id, rs] of this.reconnectStates.entries()) {
+    for (const rs of Array.from(this.reconnectStates.values())) {
       if (rs.timer) clearTimeout(rs.timer);
-      this.reconnectStates.delete(id);
     }
+    this.reconnectStates.clear();
 
-    const entries = Array.from(this.processes.entries());
-    for (const [id, streamProc] of entries) {
+    for (const [id, streamProc] of Array.from(this.processes.entries())) {
       streamProc.ffmpegProcess.kill("SIGTERM");
       await storage.updateEndpointStatus(id, { status: "stopped" });
     }

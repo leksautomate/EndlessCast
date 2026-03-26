@@ -241,6 +241,7 @@ export class MemStorage implements IStorage {
       this.streamingState.endpointStatuses.push({
         endpointId,
         status: "idle",
+        reconnectCount: 0,
         ...status,
       });
     }

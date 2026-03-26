@@ -98,7 +98,7 @@ export function StatusDashboard({
 
   const getEndpointStatus = (endpointId: string): StreamStatus => {
     const status = endpointStatuses.find(s => s.endpointId === endpointId);
-    return status || { endpointId, status: "idle" };
+    return status || { endpointId, status: "idle" as const, reconnectCount: 0 };
   };
 
   const liveCount = endpointStatuses.filter(s => s.status === "live").length;
@@ -197,7 +197,7 @@ export function StatusDashboard({
                   <div className="mt-3 pt-3 border-t border-status-away/20 space-y-1">
                     {(status.reconnectCount ?? 0) > 0 && (
                       <p className="text-xs text-status-away">
-                        Attempt {status.reconnectCount} of 10
+                        Attempt {status.reconnectCount} of 3
                       </p>
                     )}
                     {status.nextReconnectAt && (

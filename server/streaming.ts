@@ -2,7 +2,7 @@ import { spawn, ChildProcess } from "child_process";
 import { storage } from "./storage";
 import { emailService } from "./email";
 import { telegramService } from "./telegram";
-import type { RtmpEndpoint } from "@shared/schema";
+import type { RtmpEndpoint, ExtraCamera } from "@shared/schema";
 import { outputProfileInfo } from "@shared/schema";
 import path from "path";
 
@@ -21,6 +21,8 @@ interface ReconnectState {
   videoPath: string;
   endpoint: RtmpEndpoint;
   durationSeconds: number;
+  extraCameraPath: string | null;
+  extraCameraConfig: ExtraCamera | null;
 }
 
 class StreamingService {
@@ -49,6 +51,19 @@ class StreamingService {
 
     const limit = durationSeconds || 42900;
 
+    // Resolve extra camera video path if configured and enabled
+    let extraCameraPath: string | null = null;
+    const extraCamera = state.extraCamera?.enabled ? state.extraCamera : null;
+    if (extraCamera) {
+      const camVideo = await storage.getVideo(extraCamera.videoId);
+      if (camVideo) {
+        extraCameraPath = path.join(process.cwd(), "uploads", camVideo.filename);
+        console.log(`Extra camera: ${camVideo.originalName} @ ${extraCamera.position} (${extraCamera.sizePercent}%)`);
+      } else {
+        console.warn(`Extra camera video ${extraCamera.videoId} not found — streaming without PiP`);
+      }
+    }
+
     await storage.setStreamingState({
       isStreaming: true,
       startedAt: new Date().toISOString(),
@@ -62,36 +77,38 @@ class StreamingService {
     const videoSource = path.join(process.cwd(), "uploads", video.filename);
 
     for (const endpoint of enabledEndpoints) {
-      await this.startEndpointStream(videoSource, endpoint, limit, false);
+      await this.startEndpointStream(
+        videoSource, endpoint, limit, false,
+        extraCameraPath, extraCamera,
+      );
     }
 
     await telegramService.notifyStreamStart(enabledEndpoints.map(e => e.name));
-
     this.startMonitoring();
   }
 
-  private buildFfmpegArgs(videoSource: string, endpoint: RtmpEndpoint, durationSeconds: number): string[] {
+  private buildFfmpegArgs(
+    videoSource: string,
+    endpoint: RtmpEndpoint,
+    durationSeconds: number,
+    extraCameraPath: string | null,
+    extraCamera: ExtraCamera | null,
+  ): string[] {
     const profile = outputProfileInfo[endpoint.outputProfile ?? "landscape_1080p"];
     const rtmpFullUrl = `${endpoint.rtmpUrl}/${endpoint.streamKey}`;
 
-    let scaleFilter: string;
+    // Build the main video scale filter
+    let mainScaleFilter: string;
     if (endpoint.outputProfile === "portrait_1080p") {
-      scaleFilter = `scale=${profile.width}:${profile.height}:force_original_aspect_ratio=decrease,pad=${profile.width}:${profile.height}:(ow-iw)/2:(oh-ih)/2`;
+      mainScaleFilter = `scale=${profile.width}:${profile.height}:force_original_aspect_ratio=decrease,pad=${profile.width}:${profile.height}:(ow-iw)/2:(oh-ih)/2`;
     } else if (endpoint.outputProfile === "square_1080p") {
-      // Scale so the shorter side is exactly 1080 (covering the 1080x1080 canvas),
-      // then center-crop. For landscape (iw>ih): scale height to 1080 (width becomes >1080).
-      // For portrait (ih>iw): scale width to 1080 (height becomes >1080).
-      scaleFilter = `scale='if(gt(iw,ih),-1,${profile.width})':'if(gt(iw,ih),${profile.height},-1)',crop=${profile.width}:${profile.height}`;
+      mainScaleFilter = `scale='if(gt(iw,ih),-1,${profile.width})':'if(gt(iw,ih),${profile.height},-1)',crop=${profile.width}:${profile.height}`;
     } else {
-      scaleFilter = `scale='min(${profile.width},iw)':'min(${profile.height},ih)':force_original_aspect_ratio=decrease,pad=${profile.width}:${profile.height}:(ow-iw)/2:(oh-ih)/2`;
+      mainScaleFilter = `scale='min(${profile.width},iw)':'min(${profile.height},ih)':force_original_aspect_ratio=decrease,pad=${profile.width}:${profile.height}:(ow-iw)/2:(oh-ih)/2`;
     }
 
-    return [
-      "-re",
-      "-stream_loop", "-1",
-      "-i", videoSource,
+    const commonOutputArgs = [
       "-t", durationSeconds.toString(),
-      "-vf", scaleFilter,
       "-r", "30",
       "-c:v", "libx264",
       "-preset", "veryfast",
@@ -105,6 +122,43 @@ class StreamingService {
       "-f", "flv",
       rtmpFullUrl,
     ];
+
+    if (extraCameraPath && extraCamera) {
+      // PiP overlay: use filter_complex
+      const pipWidth = Math.round(profile.width * (extraCamera.sizePercent / 100));
+      // Ensure even width for libx264
+      const pipWidthEven = pipWidth % 2 === 0 ? pipWidth : pipWidth + 1;
+
+      const overlayPos: Record<string, string> = {
+        "bottom-right": `W-w-20:H-h-20`,
+        "bottom-left":  `20:H-h-20`,
+        "top-right":    `W-w-20:20`,
+        "top-left":     `20:20`,
+      };
+      const pos = overlayPos[extraCamera.position] ?? "W-w-20:H-h-20";
+
+      const filterComplex = [
+        `[0:v]${mainScaleFilter}[main]`,
+        `[1:v]scale=${pipWidthEven}:-2[pip]`,
+        `[main][pip]overlay=${pos}[out]`,
+      ].join(";");
+
+      return [
+        "-re", "-stream_loop", "-1", "-i", videoSource,
+        "-re", "-stream_loop", "-1", "-i", extraCameraPath,
+        "-filter_complex", filterComplex,
+        "-map", "[out]",
+        "-map", "0:a",
+        ...commonOutputArgs,
+      ];
+    } else {
+      // No extra camera — simple -vf filter
+      return [
+        "-re", "-stream_loop", "-1", "-i", videoSource,
+        "-vf", mainScaleFilter,
+        ...commonOutputArgs,
+      ];
+    }
   }
 
   private async startEndpointStream(
@@ -112,12 +166,17 @@ class StreamingService {
     endpoint: RtmpEndpoint,
     durationSeconds: number,
     isReconnect: boolean,
+    extraCameraPath: string | null,
+    extraCamera: ExtraCamera | null,
   ): Promise<void> {
-    const ffmpegArgs = this.buildFfmpegArgs(videoSource, endpoint, durationSeconds);
+    const ffmpegArgs = this.buildFfmpegArgs(
+      videoSource, endpoint, durationSeconds, extraCameraPath, extraCamera,
+    );
 
     console.log(
       `[${endpoint.name}] ${isReconnect ? "Reconnecting" : "Starting"} stream → ${endpoint.rtmpUrl} ` +
-      `(profile: ${endpoint.outputProfile ?? "landscape_1080p"})`
+      `(profile: ${endpoint.outputProfile ?? "landscape_1080p"}` +
+      `${extraCameraPath ? ", PiP active" : ""})`
     );
 
     const ffmpegProcess = spawn("ffmpeg", ffmpegArgs);
@@ -184,13 +243,11 @@ class StreamingService {
       }
 
       const errorMsg = `Process exited with code ${code}`;
-
       const existingRs = this.reconnectStates.get(endpoint.id);
       const attemptsUsed = existingRs?.attempts ?? 0;
       const canRetry = attemptsUsed < MAX_RECONNECT_ATTEMPTS;
 
       if (!canRetry) {
-        // No more attempts — notify and set permanent error
         await storage.updateEndpointStatus(endpoint.id, { status: "error", errorMessage: errorMsg });
         const emailSettings = await storage.getEmailSettings();
         if (emailSettings?.enabled && emailSettings?.notifyOnError) {
@@ -199,13 +256,14 @@ class StreamingService {
         await telegramService.notifyStreamError(endpoint.name, errorMsg);
       }
 
-      await this.scheduleReconnect(videoSource, endpoint, durationSeconds);
+      await this.scheduleReconnect(
+        videoSource, endpoint, durationSeconds, extraCameraPath, extraCamera,
+      );
     });
 
     this.processes.set(endpoint.id, { endpointId: endpoint.id, ffmpegProcess });
 
-    // Keep showing "reconnecting" status when this is a retry attempt —
-    // only set "connecting" for the initial (non-reconnect) spawn.
+    // Keep "reconnecting" status through reconnect spawns; only reset to "connecting" initially
     if (!isReconnect) {
       await storage.updateEndpointStatus(endpoint.id, { status: "connecting" });
     }
@@ -221,8 +279,7 @@ class StreamingService {
           reconnectCount: currentRs?.attempts ?? 0,
           nextReconnectAt: undefined,
         });
-        // Clear reconnect state after a successful reconnect so future failures
-        // get a fresh 3-attempt budget, and hasPendingReconnects stays accurate.
+        // Clear reconnect state after successful reconnect — fresh budget for future failures
         if (wasReconnect) {
           const rs = this.reconnectStates.get(endpoint.id);
           if (rs?.timer) clearTimeout(rs.timer);
@@ -236,6 +293,8 @@ class StreamingService {
     videoSource: string,
     endpoint: RtmpEndpoint,
     durationSeconds: number,
+    extraCameraPath: string | null,
+    extraCamera: ExtraCamera | null,
   ): Promise<void> {
     let rs = this.reconnectStates.get(endpoint.id);
 
@@ -247,6 +306,8 @@ class StreamingService {
         videoPath: videoSource,
         endpoint,
         durationSeconds,
+        extraCameraPath,
+        extraCameraConfig: extraCamera,
       };
       this.reconnectStates.set(endpoint.id, newRs);
       rs = newRs;
@@ -290,7 +351,10 @@ class StreamingService {
         return;
       }
 
-      await this.startEndpointStream(capturedRs.videoPath, latestEndpoint, capturedRs.durationSeconds, true);
+      await this.startEndpointStream(
+        capturedRs.videoPath, latestEndpoint, capturedRs.durationSeconds, true,
+        capturedRs.extraCameraPath, capturedRs.extraCameraConfig,
+      );
     }, RECONNECT_DELAY_MS);
   }
 
@@ -312,7 +376,6 @@ class StreamingService {
     }
 
     await storage.setStreamingState({ isStreaming: false, startedAt: undefined });
-
     await telegramService.notifyStreamStop();
   }
 

@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
-import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, EmailSettings, InsertEmailSettings, ThemeSettings, InsertThemeSettings, TelegramSettings, InsertTelegramSettings } from "@shared/schema";
+import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, EmailSettings, InsertEmailSettings, ThemeSettings, InsertThemeSettings, TelegramSettings, InsertTelegramSettings, ExtraCamera } from "@shared/schema";
 import { MAX_STORAGE_BYTES, MAX_VIDEOS } from "@shared/schema";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -35,6 +35,7 @@ export interface IStorage {
   getStreamingState(): Promise<StreamingState>;
   setStreamingState(state: Partial<StreamingState>): Promise<StreamingState>;
   updateEndpointStatus(endpointId: string, status: Partial<StreamStatus>): Promise<void>;
+  setExtraCamera(config: ExtraCamera | null): Promise<StreamingState>;
 
   // Playlist operations
   getPlaylists(): Promise<Playlist[]>;
@@ -90,6 +91,7 @@ export class MemStorage implements IStorage {
       playlistIndex: 0,
       endpointStatuses: [],
       stats: [],
+      extraCamera: null,
     };
 
     this.loadFromDisk();
@@ -245,6 +247,11 @@ export class MemStorage implements IStorage {
         ...status,
       });
     }
+  }
+
+  async setExtraCamera(config: ExtraCamera | null): Promise<StreamingState> {
+    this.streamingState = { ...this.streamingState, extraCamera: config };
+    return { ...this.streamingState };
   }
 
   // Playlist operations

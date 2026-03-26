@@ -500,6 +500,44 @@ export async function registerRoutes(
     }
   });
 
+  // Set extra camera (PiP overlay)
+  app.post("/api/streaming/extra-camera", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const state = await storage.getStreamingState();
+      if (state.isStreaming) {
+        return res.status(400).json({ message: "Cannot change extra camera while streaming" });
+      }
+      const { videoId, position, sizePercent, enabled } = req.body;
+      if (!videoId) {
+        return res.status(400).json({ message: "videoId required" });
+      }
+      const video = await storage.getVideo(videoId);
+      if (!video) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+      const updated = await storage.setExtraCamera({
+        videoId,
+        position: position ?? "bottom-right",
+        sizePercent: typeof sizePercent === "number" ? sizePercent : 25,
+        enabled: enabled !== false,
+      });
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Set extra camera error:", error);
+      res.status(500).json({ message: "Failed to set extra camera" });
+    }
+  });
+
+  // Clear extra camera
+  app.delete("/api/streaming/extra-camera", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const updated = await storage.setExtraCamera(null);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to clear extra camera" });
+    }
+  });
+
   // ============ STORAGE ROUTES ============
 
   // Get storage info

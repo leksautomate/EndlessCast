@@ -4,6 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Video, RtmpEndpoint, StreamingState, StorageInfo } from "@shared/schema";
 import { StreamingControls } from "@/components/streaming-controls";
+import { ExtraCameraPanel } from "@/components/extra-camera-panel";
 import { StreamHealthMonitor } from "@/components/stream-health-monitor";
 import { StatusDashboard } from "@/components/status-dashboard";
 import {
@@ -16,6 +17,7 @@ import {
   ChevronRight,
   Server,
   Wifi,
+  Camera,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -213,6 +215,19 @@ export default function Overview() {
             onStart={(durationSeconds) => startStreamMutation.mutate(durationSeconds)}
             onStop={() => stopStreamMutation.mutate()}
           />
+        </CardContent>
+      </Card>
+
+      {/* Extra camera (PiP overlay) */}
+      <Card className="border-primary/20 bg-card/50 backdrop-blur mb-6">
+        <CardHeader className="pb-3 border-b border-primary/10">
+          <CardTitle className="text-sm font-mono flex items-center gap-2">
+            <Camera className="w-4 h-4 text-primary" />
+            <span className="text-primary">&gt;</span> EXTRA_CAMERA
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <ExtraCameraPanel videos={videos} streamingState={streamingState} />
         </CardContent>
       </Card>
 

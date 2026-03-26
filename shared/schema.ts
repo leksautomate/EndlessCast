@@ -138,6 +138,32 @@ export type ScheduledStream = z.infer<typeof scheduledStreamSchema>;
 export const insertScheduledStreamSchema = scheduledStreamSchema.omit({ id: true, createdAt: true });
 export type InsertScheduledStream = z.infer<typeof insertScheduledStreamSchema>;
 
+// Extra camera (picture-in-picture overlay) config
+export const extraCameraPositions = [
+  "bottom-right",
+  "bottom-left",
+  "top-right",
+  "top-left",
+] as const;
+
+export type ExtraCameraPosition = typeof extraCameraPositions[number];
+
+export const extraCameraPositionInfo: Record<ExtraCameraPosition, { label: string; icon: string }> = {
+  "bottom-right": { label: "Bottom Right", icon: "↘" },
+  "bottom-left":  { label: "Bottom Left",  icon: "↙" },
+  "top-right":    { label: "Top Right",    icon: "↗" },
+  "top-left":     { label: "Top Left",     icon: "↖" },
+};
+
+export const extraCameraSchema = z.object({
+  videoId: z.string(),
+  position: z.enum(extraCameraPositions).default("bottom-right"),
+  sizePercent: z.number().min(10).max(50).default(25),
+  enabled: z.boolean().default(true),
+});
+
+export type ExtraCamera = z.infer<typeof extraCameraSchema>;
+
 // Global streaming state
 export const streamingStateSchema = z.object({
   isStreaming: z.boolean(),
@@ -147,6 +173,7 @@ export const streamingStateSchema = z.object({
   startedAt: z.string().optional(),
   endpointStatuses: z.array(streamStatusSchema),
   stats: z.array(streamStatsSchema),
+  extraCamera: extraCameraSchema.nullable().default(null),
 });
 
 export type StreamingState = z.infer<typeof streamingStateSchema>;

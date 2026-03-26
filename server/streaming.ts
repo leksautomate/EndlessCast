@@ -196,12 +196,20 @@ class StreamingService {
       const proc = this.processes.get(endpoint.id);
       if (proc && !proc.ffmpegProcess.killed) {
         const currentRs = this.reconnectStates.get(endpoint.id);
+        const wasReconnect = (currentRs?.attempts ?? 0) > 0;
         await storage.updateEndpointStatus(endpoint.id, {
           status: "live",
           startedAt: new Date().toISOString(),
           reconnectCount: currentRs?.attempts ?? 0,
           nextReconnectAt: undefined,
         });
+        // Clear reconnect state after a successful reconnect so future failures
+        // get a fresh 3-attempt budget, and hasPendingReconnects stays accurate.
+        if (wasReconnect) {
+          const rs = this.reconnectStates.get(endpoint.id);
+          if (rs?.timer) clearTimeout(rs.timer);
+          this.reconnectStates.delete(endpoint.id);
+        }
       }
     }, 5000);
   }

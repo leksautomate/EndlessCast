@@ -33,6 +33,10 @@ export const rtmpEndpointSchema = z.object({
   rtmpUrl: z.string(),
   streamKey: z.string(),
   enabled: z.boolean(),
+  // YouTube-specific stream metadata
+  streamTitle: z.string().optional(),
+  streamDescription: z.string().optional(),
+  thumbnailPath: z.string().optional(),
 });
 
 export type RtmpEndpoint = z.infer<typeof rtmpEndpointSchema>;

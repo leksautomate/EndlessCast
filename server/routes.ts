@@ -1,3 +1,4 @@
+import express from "express";
 import type { Express, Request, Response } from "express";
 import type { Server } from "http";
 import multer from "multer";
@@ -18,6 +19,12 @@ const execAsync = promisify(exec);
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Ensure thumbnails directory exists
+const thumbnailsDir = path.join(process.cwd(), "uploads", "thumbnails");
+if (!fs.existsSync(thumbnailsDir)) {
+  fs.mkdirSync(thumbnailsDir, { recursive: true });
 }
 
 // Configure multer for video uploads
@@ -46,6 +53,34 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error("Invalid file type. Only MP4, MOV, and MKV files are allowed."));
+    }
+  },
+});
+
+// Configure multer for thumbnail uploads
+const thumbnailStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, thumbnailsDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `thumb-${uniqueSuffix}${ext}`);
+  },
+});
+
+const uploadThumbnail = multer({
+  storage: thumbnailStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max for thumbnails
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    const allowedExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (allowedTypes.includes(file.mimetype) || allowedExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed."));
     }
   },
 });
@@ -325,6 +360,65 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete endpoint" });
+    }
+  });
+
+  // ============ THUMBNAIL ROUTES ============
+
+  // Serve thumbnail files statically
+  app.use("/thumbnails", express.static(thumbnailsDir));
+
+  // Upload thumbnail for an RTMP endpoint
+  app.post("/api/rtmp-endpoints/:id/thumbnail", requireAuth, uploadThumbnail.single("thumbnail"), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+
+      const endpoint = await storage.getRtmpEndpoint(id);
+      if (!endpoint) {
+        fs.unlinkSync(req.file.path);
+        return res.status(404).json({ message: "Endpoint not found" });
+      }
+
+      // Delete old thumbnail if it exists
+      if (endpoint.thumbnailPath) {
+        const oldPath = path.join(process.cwd(), endpoint.thumbnailPath.replace(/^\//, ""));
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
+
+      const thumbnailPath = `/thumbnails/${req.file.filename}`;
+      const updated = await storage.updateRtmpEndpoint(id, { thumbnailPath });
+      res.json(updated);
+    } catch (error) {
+      console.error("Thumbnail upload error:", error);
+      res.status(500).json({ message: "Failed to upload thumbnail" });
+    }
+  });
+
+  // Delete thumbnail for an RTMP endpoint
+  app.delete("/api/rtmp-endpoints/:id/thumbnail", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const endpoint = await storage.getRtmpEndpoint(id);
+      if (!endpoint) {
+        return res.status(404).json({ message: "Endpoint not found" });
+      }
+
+      if (endpoint.thumbnailPath) {
+        const oldPath = path.join(process.cwd(), endpoint.thumbnailPath.replace(/^\//, ""));
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
+
+      const updated = await storage.updateRtmpEndpoint(id, { thumbnailPath: undefined });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete thumbnail" });
     }
   });
 

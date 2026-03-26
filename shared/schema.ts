@@ -274,6 +274,22 @@ export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
 export const MAX_STORAGE_BYTES = 200 * 1024 * 1024 * 1024; // 200GB
 export const MAX_VIDEOS = 16;
 export const MAX_RESTART_ATTEMPTS = 3;
+export const MAX_LOG_ENTRIES = 500;
+
+// Event log schema
+export const logLevels = ["info", "warn", "error"] as const;
+export type LogLevel = typeof logLevels[number];
+
+export const logEntrySchema = z.object({
+  id: z.string(),
+  timestamp: z.string(),
+  level: z.enum(logLevels),
+  message: z.string(),
+  endpoint: z.string().optional(),
+  detail: z.string().optional(),
+});
+
+export type LogEntry = z.infer<typeof logEntrySchema>;
 
 // Theme settings schema
 export const themeColors = [

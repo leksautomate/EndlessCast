@@ -76,6 +76,11 @@ class StreamingService {
 
     const videoSource = path.join(process.cwd(), "uploads", video.filename);
 
+    await storage.addLog({
+      level: "info",
+      message: `Stream started — "${video.originalName}" → ${enabledEndpoints.length} endpoint(s)`,
+    });
+
     for (const endpoint of enabledEndpoints) {
       await this.startEndpointStream(
         videoSource, endpoint, limit, false,
@@ -209,6 +214,12 @@ class StreamingService {
 
     ffmpegProcess.on("error", async (error) => {
       console.error(`[${endpoint.name}] Stream error:`, error.message);
+      await storage.addLog({
+        level: "error",
+        message: `FFmpeg error on "${endpoint.name}": ${error.message}`,
+        endpoint: endpoint.name,
+        detail: error.message,
+      });
       const existingRs = this.reconnectStates.get(endpoint.id);
       const attemptsUsed = existingRs?.attempts ?? 0;
       const canRetry = attemptsUsed < MAX_RECONNECT_ATTEMPTS;
@@ -247,6 +258,15 @@ class StreamingService {
       const attemptsUsed = existingRs?.attempts ?? 0;
       const canRetry = attemptsUsed < MAX_RECONNECT_ATTEMPTS;
 
+      await storage.addLog({
+        level: canRetry ? "warn" : "error",
+        message: canRetry
+          ? `"${endpoint.name}" disconnected (exit ${code}) — will reconnect`
+          : `"${endpoint.name}" failed permanently (exit ${code}) after ${attemptsUsed + 1} attempt(s)`,
+        endpoint: endpoint.name,
+        detail: errorMsg,
+      });
+
       if (!canRetry) {
         await storage.updateEndpointStatus(endpoint.id, { status: "error", errorMessage: errorMsg });
         const emailSettings = await storage.getEmailSettings();
@@ -278,6 +298,13 @@ class StreamingService {
           startedAt: new Date().toISOString(),
           reconnectCount: currentRs?.attempts ?? 0,
           nextReconnectAt: undefined,
+        });
+        await storage.addLog({
+          level: "info",
+          message: wasReconnect
+            ? `"${endpoint.name}" reconnected and is live`
+            : `"${endpoint.name}" is live`,
+          endpoint: endpoint.name,
         });
         // Clear reconnect state after successful reconnect — fresh budget for future failures
         if (wasReconnect) {
@@ -329,6 +356,12 @@ class StreamingService {
     const nextReconnectAt = new Date(Date.now() + RECONNECT_DELAY_MS).toISOString();
     console.log(`[${endpoint.name}] Reconnect attempt ${rs.attempts}/${MAX_RECONNECT_ATTEMPTS} in ${RECONNECT_DELAY_MS / 1000}s`);
 
+    await storage.addLog({
+      level: "warn",
+      message: `"${endpoint.name}" reconnect attempt ${rs.attempts}/${MAX_RECONNECT_ATTEMPTS} in ${RECONNECT_DELAY_MS / 1000}s`,
+      endpoint: endpoint.name,
+    });
+
     await storage.updateEndpointStatus(endpoint.id, {
       status: "reconnecting",
       reconnectCount: rs.attempts,
@@ -376,6 +409,7 @@ class StreamingService {
     }
 
     await storage.setStreamingState({ isStreaming: false, startedAt: undefined });
+    await storage.addLog({ level: "info", message: "Stream stopped" });
     await telegramService.notifyStreamStop();
   }
 

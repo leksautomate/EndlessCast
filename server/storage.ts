@@ -1,8 +1,8 @@
 import { randomUUID } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
-import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, EmailSettings, InsertEmailSettings, ThemeSettings, InsertThemeSettings, TelegramSettings, InsertTelegramSettings, ExtraCamera } from "@shared/schema";
-import { MAX_STORAGE_BYTES, MAX_VIDEOS } from "@shared/schema";
+import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, EmailSettings, InsertEmailSettings, ThemeSettings, InsertThemeSettings, TelegramSettings, InsertTelegramSettings, ExtraCamera, LogEntry, LogLevel } from "@shared/schema";
+import { MAX_STORAGE_BYTES, MAX_VIDEOS, MAX_LOG_ENTRIES } from "@shared/schema";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "storage.json");
@@ -36,6 +36,11 @@ export interface IStorage {
   setStreamingState(state: Partial<StreamingState>): Promise<StreamingState>;
   updateEndpointStatus(endpointId: string, status: Partial<StreamStatus>): Promise<void>;
   setExtraCamera(config: ExtraCamera | null): Promise<StreamingState>;
+
+  // Event log operations
+  addLog(entry: { level: LogLevel; message: string; endpoint?: string; detail?: string }): Promise<LogEntry>;
+  getLogs(): Promise<LogEntry[]>;
+  clearLogs(): Promise<void>;
 
   // Playlist operations
   getPlaylists(): Promise<Playlist[]>;
@@ -74,6 +79,7 @@ export class MemStorage implements IStorage {
   private emailSettings: EmailSettings | null;
   private themeSettings: ThemeSettings | null;
   private telegramSettings: TelegramSettings | null;
+  private logs: LogEntry[] = [];
   private saveTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
@@ -84,6 +90,7 @@ export class MemStorage implements IStorage {
     this.emailSettings = null;
     this.themeSettings = null;
     this.telegramSettings = null;
+    this.logs = [];
     this.streamingState = {
       isStreaming: false,
       selectedVideoId: null,
@@ -252,6 +259,27 @@ export class MemStorage implements IStorage {
   async setExtraCamera(config: ExtraCamera | null): Promise<StreamingState> {
     this.streamingState = { ...this.streamingState, extraCamera: config };
     return { ...this.streamingState };
+  }
+
+  async addLog(entry: { level: LogLevel; message: string; endpoint?: string; detail?: string }): Promise<LogEntry> {
+    const logEntry: LogEntry = {
+      id: randomUUID(),
+      timestamp: new Date().toISOString(),
+      ...entry,
+    };
+    this.logs.unshift(logEntry);
+    if (this.logs.length > MAX_LOG_ENTRIES) {
+      this.logs = this.logs.slice(0, MAX_LOG_ENTRIES);
+    }
+    return logEntry;
+  }
+
+  async getLogs(): Promise<LogEntry[]> {
+    return [...this.logs];
+  }
+
+  async clearLogs(): Promise<void> {
+    this.logs = [];
   }
 
   // Playlist operations

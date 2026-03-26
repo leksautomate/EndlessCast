@@ -10,6 +10,7 @@ import NotFound from "@/pages/not-found";
 import Overview from "@/pages/overview";
 import Videos from "@/pages/videos";
 import Destinations from "@/pages/destinations";
+import Logs from "@/pages/logs";
 import Settings from "@/pages/settings";
 import Landing from "@/pages/landing";
 import { LoginPage } from "@/pages/login";
@@ -103,6 +104,16 @@ function AppRouter() {
         {isAuthenticated ? (
           <AppLayout onLogout={logout}>
             <Destinations />
+          </AppLayout>
+        ) : (
+          <Redirect to="/login" />
+        )}
+      </Route>
+
+      <Route path="/app/logs">
+        {isAuthenticated ? (
+          <AppLayout onLogout={logout}>
+            <Logs />
           </AppLayout>
         ) : (
           <Redirect to="/login" />

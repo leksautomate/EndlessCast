@@ -538,6 +538,26 @@ export async function registerRoutes(
     }
   });
 
+  // ============ EVENT LOG ROUTES ============
+
+  app.get("/api/logs", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const logs = await storage.getLogs();
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch logs" });
+    }
+  });
+
+  app.delete("/api/logs", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      await storage.clearLogs();
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to clear logs" });
+    }
+  });
+
   // ============ STORAGE ROUTES ============
 
   // Get storage info

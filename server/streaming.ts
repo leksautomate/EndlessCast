@@ -78,7 +78,10 @@ class StreamingService {
     if (endpoint.outputProfile === "portrait_1080p") {
       scaleFilter = `scale=${profile.width}:${profile.height}:force_original_aspect_ratio=decrease,pad=${profile.width}:${profile.height}:(ow-iw)/2:(oh-ih)/2`;
     } else if (endpoint.outputProfile === "square_1080p") {
-      scaleFilter = `scale='if(gt(iw,ih),${profile.width},-1)':'if(gt(ih,iw),${profile.height},-1)',crop=${profile.width}:${profile.height}`;
+      // Scale so the shorter side is exactly 1080 (covering the 1080x1080 canvas),
+      // then center-crop. For landscape (iw>ih): scale height to 1080 (width becomes >1080).
+      // For portrait (ih>iw): scale width to 1080 (height becomes >1080).
+      scaleFilter = `scale='if(gt(iw,ih),-1,${profile.width})':'if(gt(iw,ih),${profile.height},-1)',crop=${profile.width}:${profile.height}`;
     } else {
       scaleFilter = `scale='min(${profile.width},iw)':'min(${profile.height},ih)':force_original_aspect_ratio=decrease,pad=${profile.width}:${profile.height}:(ow-iw)/2:(oh-ih)/2`;
     }

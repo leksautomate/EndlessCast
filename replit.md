@@ -12,12 +12,12 @@ EndlessCast is a web application that enables users to upload videos and stream 
   - Portrait 1080p / Shorts (9:16, 6000k) — vertical video with letterbox padding
   - Square 1080p (1:1, 4500k) — crop-to-square for Instagram-style
   - Profile selectable in the endpoint edit dialog; badge shown on each endpoint card
-- **Auto-Reconnect with Exponential Backoff**: Streaming engine now automatically retries failed endpoints:
-  - Up to 10 reconnect attempts per endpoint
-  - Exponential backoff: 5s → 10s → 20s → ... → max 120s
-  - New `reconnecting` status with attempt count and next-retry time shown in the status dashboard
-  - Reconnect state cleared on manual stop or when endpoint is disabled
-  - Max-retries-exceeded transitions to permanent `error` state
+- **Auto-Reconnect**: Streaming engine automatically retries failed endpoints:
+  - Fixed 5-second retry delay, up to 3 attempts per disconnect incident
+  - After a successful reconnect the attempt counter is reset (fresh 3-attempt budget for future failures)
+  - New `reconnecting` status with attempt count (x of 3) and next-retry time shown in the status dashboard
+  - Reconnect state cleared on manual stop or when all reconnects complete
+  - Exceeding 3 attempts transitions the endpoint to permanent `error` state
 - **Schema Updates**: `streamStatusSchema` extended with `reconnectCount` and `nextReconnectAt` fields; `outputProfile` added to `rtmpEndpointSchema`
 
 ## Previous Changes (January 16, 2026)

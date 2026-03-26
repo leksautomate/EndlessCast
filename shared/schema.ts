@@ -52,6 +52,8 @@ export const rtmpEndpointSchema = z.object({
   enabled: z.boolean(),
   // Output profile for this destination
   outputProfile: z.enum(outputProfiles).default("landscape_1080p"),
+  // Per-endpoint video override (null = use global selected video)
+  videoId: z.string().nullable().optional(),
   // YouTube-specific stream metadata
   streamTitle: z.string().optional(),
   streamDescription: z.string().optional(),

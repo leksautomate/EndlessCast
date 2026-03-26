@@ -33,20 +33,30 @@ class StreamingService {
   async startStreaming(durationSeconds?: number): Promise<void> {
     const state = await storage.getStreamingState();
 
-    if (!state.selectedVideoId) {
-      throw new Error("No video selected");
-    }
-
-    const video = await storage.getVideo(state.selectedVideoId);
-    if (!video) {
-      throw new Error("Selected video not found");
-    }
-
     const endpoints = await storage.getRtmpEndpoints();
     const enabledEndpoints = endpoints.filter(e => e.enabled);
 
     if (enabledEndpoints.length === 0) {
       throw new Error("No RTMP endpoints configured");
+    }
+
+    // Validate that every enabled endpoint has a resolvable video:
+    // each endpoint uses its own videoId if set, otherwise falls back to the global selectedVideoId.
+    const endpointVideoSources: Map<string, string> = new Map();
+    for (const endpoint of enabledEndpoints) {
+      const resolvedVideoId = endpoint.videoId ?? state.selectedVideoId;
+      if (!resolvedVideoId) {
+        throw new Error(
+          `Endpoint "${endpoint.name}" has no video assigned and no global video is selected.`
+        );
+      }
+      const video = await storage.getVideo(resolvedVideoId);
+      if (!video) {
+        throw new Error(
+          `Video for endpoint "${endpoint.name}" not found. Please re-assign a video.`
+        );
+      }
+      endpointVideoSources.set(endpoint.id, path.join(process.cwd(), "uploads", video.filename));
     }
 
     const limit = durationSeconds || 42900;
@@ -74,14 +84,13 @@ class StreamingService {
       })),
     });
 
-    const videoSource = path.join(process.cwd(), "uploads", video.filename);
-
     await storage.addLog({
       level: "info",
-      message: `Stream started — "${video.originalName}" → ${enabledEndpoints.length} endpoint(s)`,
+      message: `Stream started → ${enabledEndpoints.length} endpoint(s)`,
     });
 
     for (const endpoint of enabledEndpoints) {
+      const videoSource = endpointVideoSources.get(endpoint.id)!;
       await this.startEndpointStream(
         videoSource, endpoint, limit, false,
         extraCameraPath, extraCamera,

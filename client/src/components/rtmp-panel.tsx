@@ -21,9 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings, Plus, Trash2, Eye, EyeOff, Pencil, Upload, X, ImageIcon, Monitor } from "lucide-react";
+import { Settings, Plus, Trash2, Eye, EyeOff, Pencil, Upload, X, ImageIcon, Monitor, Film } from "lucide-react";
 import { SiYoutube, SiFacebook } from "react-icons/si";
-import type { RtmpEndpoint, RtmpPlatform, InsertRtmpEndpoint, OutputProfile } from "@shared/schema";
+import type { RtmpEndpoint, RtmpPlatform, InsertRtmpEndpoint, OutputProfile, Video } from "@shared/schema";
 import { platformInfo, rtmpPlatforms, outputProfiles, outputProfileInfo } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -31,6 +31,7 @@ import { queryClient } from "@/lib/queryClient";
 
 interface RtmpPanelProps {
   endpoints: RtmpEndpoint[];
+  videos: Video[];
   isLoading: boolean;
   onCreate: (endpoint: InsertRtmpEndpoint) => void;
   onUpdate: (endpoint: RtmpEndpoint) => void;
@@ -68,9 +69,11 @@ function PlatformIcon({ platform, className }: { platform: RtmpPlatform; classNa
 
 function EditEndpointDialog({
   endpoint,
+  videos,
   onUpdate,
 }: {
   endpoint: RtmpEndpoint;
+  videos: Video[];
   onUpdate: (endpoint: RtmpEndpoint) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -221,6 +224,38 @@ function EditEndpointDialog({
             </p>
           </div>
 
+          {videos.length > 0 && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Film className="w-3 h-3" />
+                Video Source
+              </Label>
+              <Select
+                value={form.videoId ?? "global"}
+                onValueChange={(v) =>
+                  setForm({ ...form, videoId: v === "global" ? null : v })
+                }
+              >
+                <SelectTrigger data-testid="select-edit-video-source">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="global">
+                    Use global selected video (default)
+                  </SelectItem>
+                  {videos.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.originalName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Override the video playing on this destination independently. Leave as default to use the globally selected video.
+              </p>
+            </div>
+          )}
+
           {isYouTube && (
             <>
               <div className="border-t pt-4">
@@ -334,6 +369,7 @@ function EditEndpointDialog({
 
 export function RtmpPanel({
   endpoints,
+  videos,
   isLoading,
   onCreate,
   onUpdate,
@@ -601,7 +637,7 @@ export function RtmpPanel({
                       {endpoint.rtmpUrl}
                     </p>
 
-                    <div className="mt-1">
+                    <div className="mt-1 flex flex-wrap gap-1">
                       <Badge
                         variant="outline"
                         className="text-xs px-1.5 py-0 font-mono"
@@ -610,6 +646,25 @@ export function RtmpPanel({
                         <Monitor className="w-2.5 h-2.5 mr-1" />
                         {outputProfileInfo[endpoint.outputProfile ?? "landscape_1080p"].badge}
                       </Badge>
+                      {endpoint.videoId ? (
+                        <Badge
+                          variant="outline"
+                          className="text-xs px-1.5 py-0 font-mono border-primary/40 text-primary/80"
+                          data-testid={`badge-video-${endpoint.id}`}
+                        >
+                          <Film className="w-2.5 h-2.5 mr-1" />
+                          {videos.find(v => v.id === endpoint.videoId)?.originalName ?? "Custom video"}
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="text-xs px-1.5 py-0 font-mono text-muted-foreground"
+                          data-testid={`badge-video-global-${endpoint.id}`}
+                        >
+                          <Film className="w-2.5 h-2.5 mr-1" />
+                          Global video
+                        </Badge>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 mt-2">
@@ -632,7 +687,7 @@ export function RtmpPanel({
                           )}
                         </Button>
                       </div>
-                      <EditEndpointDialog endpoint={endpoint} onUpdate={onUpdate} />
+                      <EditEndpointDialog endpoint={endpoint} videos={videos} onUpdate={onUpdate} />
                       <Button
                         size="icon"
                         variant="ghost"

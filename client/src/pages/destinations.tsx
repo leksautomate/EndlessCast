@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { RtmpEndpoint, StreamingState, InsertRtmpEndpoint } from "@shared/schema";
+import type { RtmpEndpoint, StreamingState, InsertRtmpEndpoint, Video } from "@shared/schema";
 import { RtmpPanel } from "@/components/rtmp-panel";
 import { StatusDashboard } from "@/components/status-dashboard";
 import { Terminal, ChevronRight, Server, Wifi } from "lucide-react";
@@ -12,6 +12,10 @@ export default function Destinations() {
 
   const { data: endpoints = [], isLoading: endpointsLoading } = useQuery<RtmpEndpoint[]>({
     queryKey: ["/api/rtmp-endpoints"],
+  });
+
+  const { data: videos = [] } = useQuery<Video[]>({
+    queryKey: ["/api/videos"],
   });
 
   const { data: streamingState } = useQuery<StreamingState>({
@@ -70,6 +74,7 @@ export default function Destinations() {
           <CardContent className="pt-4">
             <RtmpPanel
               endpoints={endpoints}
+              videos={videos}
               isLoading={endpointsLoading}
               onCreate={(endpoint: InsertRtmpEndpoint) =>
                 createEndpointMutation.mutate(endpoint)

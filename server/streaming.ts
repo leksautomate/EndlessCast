@@ -150,17 +150,21 @@ class StreamingService {
 
     ffmpegProcess.on("error", async (error) => {
       console.error(`[${endpoint.name}] Stream error:`, error.message);
-      await storage.updateEndpointStatus(endpoint.id, {
-        status: "error",
-        errorMessage: error.message,
-      });
+      const existingRs = this.reconnectStates.get(endpoint.id);
+      const attemptsUsed = existingRs?.attempts ?? 0;
+      const canRetry = attemptsUsed < MAX_RECONNECT_ATTEMPTS;
 
-      const emailSettings = await storage.getEmailSettings();
-      if (emailSettings?.enabled && emailSettings?.notifyOnError) {
-        const rs = this.reconnectStates.get(endpoint.id);
-        await emailService.sendErrorAlert(emailSettings, endpoint.name, error.message, rs?.attempts ?? 1);
+      if (!canRetry) {
+        await storage.updateEndpointStatus(endpoint.id, {
+          status: "error",
+          errorMessage: error.message,
+        });
+        const emailSettings = await storage.getEmailSettings();
+        if (emailSettings?.enabled && emailSettings?.notifyOnError) {
+          await emailService.sendErrorAlert(emailSettings, endpoint.name, error.message, attemptsUsed + 1);
+        }
+        await telegramService.notifyStreamError(endpoint.name, error.message);
       }
-      await telegramService.notifyStreamError(endpoint.name, error.message);
     });
 
     ffmpegProcess.on("exit", async (code) => {
@@ -180,20 +184,31 @@ class StreamingService {
       }
 
       const errorMsg = `Process exited with code ${code}`;
-      await storage.updateEndpointStatus(endpoint.id, { status: "error", errorMessage: errorMsg });
 
-      const emailSettings = await storage.getEmailSettings();
-      if (emailSettings?.enabled && emailSettings?.notifyOnError) {
-        await emailService.sendErrorAlert(emailSettings, endpoint.name, errorMsg, 1);
+      const existingRs = this.reconnectStates.get(endpoint.id);
+      const attemptsUsed = existingRs?.attempts ?? 0;
+      const canRetry = attemptsUsed < MAX_RECONNECT_ATTEMPTS;
+
+      if (!canRetry) {
+        // No more attempts — notify and set permanent error
+        await storage.updateEndpointStatus(endpoint.id, { status: "error", errorMessage: errorMsg });
+        const emailSettings = await storage.getEmailSettings();
+        if (emailSettings?.enabled && emailSettings?.notifyOnError) {
+          await emailService.sendErrorAlert(emailSettings, endpoint.name, errorMsg, attemptsUsed + 1);
+        }
+        await telegramService.notifyStreamError(endpoint.name, errorMsg);
       }
-      await telegramService.notifyStreamError(endpoint.name, errorMsg);
 
       await this.scheduleReconnect(videoSource, endpoint, durationSeconds);
     });
 
     this.processes.set(endpoint.id, { endpointId: endpoint.id, ffmpegProcess });
 
-    await storage.updateEndpointStatus(endpoint.id, { status: "connecting" });
+    // Keep showing "reconnecting" status when this is a retry attempt —
+    // only set "connecting" for the initial (non-reconnect) spawn.
+    if (!isReconnect) {
+      await storage.updateEndpointStatus(endpoint.id, { status: "connecting" });
+    }
 
     setTimeout(async () => {
       const proc = this.processes.get(endpoint.id);

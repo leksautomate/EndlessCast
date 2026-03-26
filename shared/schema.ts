@@ -25,6 +25,23 @@ export const rtmpPlatforms = [
 
 export type RtmpPlatform = typeof rtmpPlatforms[number];
 
+// Output profile options per endpoint
+export const outputProfiles = [
+  "landscape_1080p",
+  "landscape_720p",
+  "portrait_1080p",
+  "square_1080p",
+] as const;
+
+export type OutputProfile = typeof outputProfiles[number];
+
+export const outputProfileInfo: Record<OutputProfile, { label: string; width: number; height: number; maxrate: string; bufsize: string; badge: string }> = {
+  landscape_1080p: { label: "Landscape 1080p (16:9)", width: 1920, height: 1080, maxrate: "6000k", bufsize: "12000k", badge: "16:9 1080p" },
+  landscape_720p:  { label: "Landscape 720p (16:9)",  width: 1280, height: 720,  maxrate: "3000k", bufsize: "6000k",  badge: "16:9 720p"  },
+  portrait_1080p:  { label: "Portrait 1080p / Shorts (9:16)", width: 1080, height: 1920, maxrate: "6000k", bufsize: "12000k", badge: "9:16 Shorts" },
+  square_1080p:    { label: "Square 1080p (1:1)",     width: 1080, height: 1080, maxrate: "4500k", bufsize: "9000k",  badge: "1:1 Square" },
+};
+
 // RTMP endpoint schema
 export const rtmpEndpointSchema = z.object({
   id: z.string(),
@@ -33,6 +50,8 @@ export const rtmpEndpointSchema = z.object({
   rtmpUrl: z.string(),
   streamKey: z.string(),
   enabled: z.boolean(),
+  // Output profile for this destination
+  outputProfile: z.enum(outputProfiles).default("landscape_1080p"),
   // YouTube-specific stream metadata
   streamTitle: z.string().optional(),
   streamDescription: z.string().optional(),
@@ -47,11 +66,13 @@ export type InsertRtmpEndpoint = z.infer<typeof insertRtmpEndpointSchema>;
 // Stream status for each endpoint
 export const streamStatusSchema = z.object({
   endpointId: z.string(),
-  status: z.enum(["idle", "connecting", "live", "error", "stopped"]),
+  status: z.enum(["idle", "connecting", "live", "error", "stopped", "reconnecting"]),
   startedAt: z.string().optional(),
   errorMessage: z.string().optional(),
   bitrate: z.number().optional(),
   fps: z.number().optional(),
+  reconnectCount: z.number().default(0),
+  nextReconnectAt: z.string().optional(),
   healthMetrics: z.object({
     droppedFrames: z.number().default(0),
     totalFrames: z.number().default(0),

@@ -21,10 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings, Plus, Trash2, Eye, EyeOff, Pencil, Upload, X, ImageIcon } from "lucide-react";
+import { Settings, Plus, Trash2, Eye, EyeOff, Pencil, Upload, X, ImageIcon, Monitor } from "lucide-react";
 import { SiYoutube, SiFacebook } from "react-icons/si";
-import type { RtmpEndpoint, RtmpPlatform, InsertRtmpEndpoint } from "@shared/schema";
-import { platformInfo, rtmpPlatforms } from "@shared/schema";
+import type { RtmpEndpoint, RtmpPlatform, InsertRtmpEndpoint, OutputProfile } from "@shared/schema";
+import { platformInfo, rtmpPlatforms, outputProfiles, outputProfileInfo } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -194,6 +194,31 @@ function EditEndpointDialog({
                 {showKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
               </Button>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1">
+              <Monitor className="w-3 h-3" />
+              Output Profile
+            </Label>
+            <Select
+              value={form.outputProfile ?? "landscape_1080p"}
+              onValueChange={(v) => setForm({ ...form, outputProfile: v as OutputProfile })}
+            >
+              <SelectTrigger data-testid="select-edit-output-profile">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {outputProfiles.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {outputProfileInfo[p].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Controls the resolution and aspect ratio sent to this destination.
+            </p>
           </div>
 
           {isYouTube && (
@@ -573,6 +598,17 @@ export function RtmpPanel({
                     <p className="text-xs font-mono text-muted-foreground mt-1 truncate">
                       {endpoint.rtmpUrl}
                     </p>
+
+                    <div className="mt-1">
+                      <Badge
+                        variant="outline"
+                        className="text-xs px-1.5 py-0 font-mono"
+                        data-testid={`badge-profile-${endpoint.id}`}
+                      >
+                        <Monitor className="w-2.5 h-2.5 mr-1" />
+                        {outputProfileInfo[endpoint.outputProfile ?? "landscape_1080p"].badge}
+                      </Badge>
+                    </div>
 
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex-1 flex items-center gap-1">

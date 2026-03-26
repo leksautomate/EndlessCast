@@ -4,7 +4,23 @@
 
 EndlessCast is a web application that enables users to upload videos and stream them continuously (24/7) to multiple RTMP endpoints simultaneously. The platform supports major streaming services like YouTube Live, Facebook Live, Rumble, Odysee, and Twitter/X, as well as custom RTMP destinations. Users can manage a video library (up to 200GB storage with 16 videos max), configure RTMP endpoints, and control streaming with real-time status monitoring, email/Telegram notifications, and CDN integration.
 
-## Recent Changes (January 16, 2026)
+## Recent Changes (March 26, 2026)
+
+- **Per-Endpoint Output Profiles**: Each RTMP endpoint now has an independently configurable output profile:
+  - Landscape 1080p (16:9, 6000k) — default
+  - Landscape 720p (16:9, 3000k) — bandwidth-saving
+  - Portrait 1080p / Shorts (9:16, 6000k) — vertical video with letterbox padding
+  - Square 1080p (1:1, 4500k) — crop-to-square for Instagram-style
+  - Profile selectable in the endpoint edit dialog; badge shown on each endpoint card
+- **Auto-Reconnect with Exponential Backoff**: Streaming engine now automatically retries failed endpoints:
+  - Up to 10 reconnect attempts per endpoint
+  - Exponential backoff: 5s → 10s → 20s → ... → max 120s
+  - New `reconnecting` status with attempt count and next-retry time shown in the status dashboard
+  - Reconnect state cleared on manual stop or when endpoint is disabled
+  - Max-retries-exceeded transitions to permanent `error` state
+- **Schema Updates**: `streamStatusSchema` extended with `reconnectCount` and `nextReconnectAt` fields; `outputProfile` added to `rtmpEndpointSchema`
+
+## Previous Changes (January 16, 2026)
 
 - **Persistent Storage**: Added file-based persistent storage to save videos, RTMP endpoints, and all settings to disk. Data now survives server restarts.
 - **Data Persistence**: All metadata (videos, RTMP endpoints, playlists, email/Telegram/theme settings) saved to `data/storage.json` with debounced auto-save

@@ -37,7 +37,7 @@ export function StreamHealthMonitor({ endpoints, streamingState }: StreamHealthM
                 <div className="space-y-4">
                     {streamingState.endpointStatuses.map((status) => {
                         const endpoint = endpoints.find((e) => e.id === status.endpointId);
-                        if (!endpoint || status.status !== "live" || !status.healthMetrics) return null;
+                        if (!endpoint || (status.status !== "live" && status.status !== "reconnecting") || !status.healthMetrics) return null;
 
                         const { healthMetrics } = status;
                         const health = healthMetrics.bufferHealth;

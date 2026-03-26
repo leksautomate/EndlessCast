@@ -3,16 +3,32 @@ import { storage } from "./storage";
 import { emailService } from "./email";
 import { telegramService } from "./telegram";
 import type { RtmpEndpoint } from "@shared/schema";
+import { outputProfileInfo } from "@shared/schema";
 import path from "path";
+
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_DELAY_BASE_MS = 5000;
+const RECONNECT_DELAY_MAX_MS = 120000;
 
 interface StreamProcess {
   endpointId: string;
   ffmpegProcess: ChildProcess;
 }
 
+interface ReconnectState {
+  endpointId: string;
+  attempts: number;
+  timer: NodeJS.Timeout | null;
+  videoPath: string;
+  endpoint: RtmpEndpoint;
+  durationSeconds: number;
+}
+
 class StreamingService {
   private processes: Map<string, StreamProcess> = new Map();
+  private reconnectStates: Map<string, ReconnectState> = new Map();
   private monitorInterval: NodeJS.Timeout | null = null;
+  private globalDuration: number = 42900;
 
   async startStreaming(durationSeconds?: number): Promise<void> {
     const state = await storage.getStreamingState();
@@ -33,70 +49,81 @@ class StreamingService {
       throw new Error("No RTMP endpoints configured");
     }
 
-    // Update streaming state
+    this.globalDuration = durationSeconds || 42900;
+
     await storage.setStreamingState({
       isStreaming: true,
       startedAt: new Date().toISOString(),
       endpointStatuses: enabledEndpoints.map(e => ({
         endpointId: e.id,
         status: "connecting" as const,
+        reconnectCount: 0,
       })),
     });
 
-    // Default duration to 11 hours 55 minutes if not provided
-    // 11 * 3600 + 55 * 60 = 39600 + 3300 = 42900 seconds
-    const limit = durationSeconds || 42900;
+    const videoSource = path.join(process.cwd(), "uploads", video.filename);
 
-    // Start streaming to each endpoint
     for (const endpoint of enabledEndpoints) {
-      await this.startEndpointStream(video, endpoint, limit);
+      await this.startEndpointStream(videoSource, endpoint, this.globalDuration, false);
     }
 
-    // Send Telegram notification
     await telegramService.notifyStreamStart(enabledEndpoints.map(e => e.name));
 
-    // Start monitoring
     this.startMonitoring();
   }
 
-  private async startEndpointStream(video: any, endpoint: RtmpEndpoint, durationSeconds: number): Promise<void> {
-    // Use local file storage only
-    const videoSource = path.join(process.cwd(), "uploads", video.filename);
-    console.log(`Streaming from local storage: ${videoSource}`);
-
+  private buildFfmpegArgs(videoSource: string, endpoint: RtmpEndpoint, durationSeconds: number): string[] {
+    const profile = outputProfileInfo[endpoint.outputProfile ?? "landscape_1080p"];
     const rtmpFullUrl = `${endpoint.rtmpUrl}/${endpoint.streamKey}`;
 
-    // FFmpeg command to loop video and stream to RTMP
-    // Scale to max 1920x1080 while maintaining aspect ratio (for Facebook compatibility)
-    const ffmpegArgs = [
-      "-re",                          // Read input at native frame rate
-      "-stream_loop", "-1",           // Loop indefinitely
-      "-i", videoSource,              // Input file (local storage)
-      "-t", durationSeconds.toString(), // Stop writing output after duration
-      "-vf", "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
-      "-r", "30",                     // Force 30 fps output (YouTube minimum)
-      "-c:v", "libx264",              // Video codec
-      "-preset", "veryfast",          // Encoding speed (RAM-efficient)
-      "-maxrate", "3000k",            // Max bitrate
-      "-bufsize", "6000k",            // Buffer size
-      "-pix_fmt", "yuv420p",          // Pixel format
-      "-g", "60",                     // Keyframe interval (2 seconds at 30fps)
-      "-c:a", "aac",                  // Audio codec
-      "-b:a", "160k",                 // Audio bitrate
-      "-ar", "44100",                 // Audio sample rate
-      "-f", "flv",                    // Output format
-      rtmpFullUrl                     // RTMP destination
-    ];
+    let scaleFilter: string;
+    if (endpoint.outputProfile === "portrait_1080p") {
+      scaleFilter = `scale=${profile.width}:${profile.height}:force_original_aspect_ratio=decrease,pad=${profile.width}:${profile.height}:(ow-iw)/2:(oh-ih)/2`;
+    } else if (endpoint.outputProfile === "square_1080p") {
+      scaleFilter = `scale='if(gt(iw,ih),${profile.width},-1)':'if(gt(ih,iw),${profile.height},-1)',crop=${profile.width}:${profile.height}`;
+    } else {
+      scaleFilter = `scale='min(${profile.width},iw)':'min(${profile.height},ih)':force_original_aspect_ratio=decrease,pad=${profile.width}:${profile.height}:(ow-iw)/2:(oh-ih)/2`;
+    }
 
-    console.log(`Starting stream to ${endpoint.name}: ${endpoint.rtmpUrl} for ${durationSeconds} seconds`);
+    return [
+      "-re",
+      "-stream_loop", "-1",
+      "-i", videoSource,
+      "-t", durationSeconds.toString(),
+      "-vf", scaleFilter,
+      "-r", "30",
+      "-c:v", "libx264",
+      "-preset", "veryfast",
+      "-maxrate", profile.maxrate,
+      "-bufsize", profile.bufsize,
+      "-pix_fmt", "yuv420p",
+      "-g", "60",
+      "-c:a", "aac",
+      "-b:a", "160k",
+      "-ar", "44100",
+      "-f", "flv",
+      rtmpFullUrl,
+    ];
+  }
+
+  private async startEndpointStream(
+    videoSource: string,
+    endpoint: RtmpEndpoint,
+    durationSeconds: number,
+    isReconnect: boolean,
+  ): Promise<void> {
+    const ffmpegArgs = this.buildFfmpegArgs(videoSource, endpoint, durationSeconds);
+
+    console.log(
+      `[${endpoint.name}] ${isReconnect ? "Reconnecting" : "Starting"} stream → ${endpoint.rtmpUrl} ` +
+      `(profile: ${endpoint.outputProfile ?? "landscape_1080p"})`
+    );
 
     const ffmpegProcess = spawn("ffmpeg", ffmpegArgs);
 
     ffmpegProcess.stderr.on("data", (data) => {
       const output = data.toString();
-      // Parse FFmpeg output for stats
       if (output.includes("frame=")) {
-        // Extract metrics from FFmpeg output
         const bitrateMatch = output.match(/bitrate=\s*([\d.]+)kbits/);
         const fpsMatch = output.match(/fps=\s*([\d.]+)/);
         const frameMatch = output.match(/frame=\s*(\d+)/);
@@ -104,8 +131,6 @@ class StreamingService {
 
         const totalFrames = frameMatch ? parseInt(frameMatch[1]) : 0;
         const droppedFrames = dropMatch ? parseInt(dropMatch[1]) : 0;
-
-        // Calculate buffer health (100% - drop percentage)
         const dropPercentage = totalFrames > 0 ? (droppedFrames / totalFrames) * 100 : 0;
         const bufferHealth = Math.max(0, Math.min(100, 100 - dropPercentage));
 
@@ -123,113 +148,145 @@ class StreamingService {
     });
 
     ffmpegProcess.on("error", async (error) => {
-      console.error(`Stream error for ${endpoint.name}:`, error.message);
+      console.error(`[${endpoint.name}] Stream error:`, error.message);
       await storage.updateEndpointStatus(endpoint.id, {
         status: "error",
         errorMessage: error.message,
       });
 
-      // Send email alert if enabled
       const emailSettings = await storage.getEmailSettings();
       if (emailSettings?.enabled && emailSettings?.notifyOnError) {
-        await emailService.sendErrorAlert(
-          emailSettings,
-          endpoint.name,
-          error.message,
-          1
-        );
+        const rs = this.reconnectStates.get(endpoint.id);
+        await emailService.sendErrorAlert(emailSettings, endpoint.name, error.message, rs?.attempts ?? 1);
       }
-
-      // Send Telegram alert
       await telegramService.notifyStreamError(endpoint.name, error.message);
     });
 
     ffmpegProcess.on("exit", async (code) => {
-      console.log(`Stream to ${endpoint.name} exited with code ${code}`);
+      console.log(`[${endpoint.name}] Exited with code ${code}`);
       this.processes.delete(endpoint.id);
 
       const state = await storage.getStreamingState();
-      if (state.isStreaming) {
-        if (code !== 0 && code !== 255) { // 255 is often returned when killed via signal or -t
-          // Stream ended unexpectedly with error
-          const errorMsg = `Process exited with code ${code}`;
-          await storage.updateEndpointStatus(endpoint.id, {
-            status: "error",
-            errorMessage: errorMsg,
-          });
-
-          // Send email alert if enabled
-          const emailSettings = await storage.getEmailSettings();
-          if (emailSettings?.enabled && emailSettings?.notifyOnError) {
-            await emailService.sendErrorAlert(
-              emailSettings,
-              endpoint.name,
-              errorMsg,
-              1
-            );
-          }
-
-          // Send Telegram alert
-          await telegramService.notifyStreamError(endpoint.name, errorMsg);
-        } else {
-          // Clean exit (e.g. duration reached)
-          await storage.updateEndpointStatus(endpoint.id, {
-            status: "stopped",
-          });
-        }
-      } else {
-        await storage.updateEndpointStatus(endpoint.id, {
-          status: "stopped",
-        });
+      if (!state.isStreaming) {
+        await storage.updateEndpointStatus(endpoint.id, { status: "stopped" });
+        return;
       }
+
+      const isCleanExit = code === 0 || code === 255;
+
+      if (isCleanExit) {
+        await storage.updateEndpointStatus(endpoint.id, { status: "stopped" });
+        return;
+      }
+
+      const errorMsg = `Process exited with code ${code}`;
+      await storage.updateEndpointStatus(endpoint.id, { status: "error", errorMessage: errorMsg });
+
+      const emailSettings = await storage.getEmailSettings();
+      if (emailSettings?.enabled && emailSettings?.notifyOnError) {
+        await emailService.sendErrorAlert(emailSettings, endpoint.name, errorMsg, 1);
+      }
+      await telegramService.notifyStreamError(endpoint.name, errorMsg);
+
+      await this.scheduleReconnect(videoSource, endpoint, durationSeconds);
     });
 
-    this.processes.set(endpoint.id, {
-      endpointId: endpoint.id,
-      ffmpegProcess,
-    });
+    this.processes.set(endpoint.id, { endpointId: endpoint.id, ffmpegProcess });
 
-    // Mark as connecting initially
-    await storage.updateEndpointStatus(endpoint.id, {
-      status: "connecting",
-    });
+    await storage.updateEndpointStatus(endpoint.id, { status: "connecting" });
 
-    // Assume live after a short delay (FFmpeg doesn't clearly indicate connection success)
     setTimeout(async () => {
       const proc = this.processes.get(endpoint.id);
       if (proc && !proc.ffmpegProcess.killed) {
+        const currentState = this.reconnectStates.get(endpoint.id);
         await storage.updateEndpointStatus(endpoint.id, {
           status: "live",
           startedAt: new Date().toISOString(),
+          reconnectCount: currentState?.attempts ?? 0,
+          nextReconnectAt: undefined,
         });
       }
     }, 5000);
   }
 
+  private async scheduleReconnect(
+    videoSource: string,
+    endpoint: RtmpEndpoint,
+    durationSeconds: number,
+  ): Promise<void> {
+    let rs = this.reconnectStates.get(endpoint.id);
+
+    if (!rs) {
+      rs = { endpointId: endpoint.id, attempts: 0, timer: null, videoSource, endpoint, durationSeconds };
+      this.reconnectStates.set(endpoint.id, rs);
+    }
+
+    rs.attempts += 1;
+
+    if (rs.attempts > MAX_RECONNECT_ATTEMPTS) {
+      console.warn(`[${endpoint.name}] Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Giving up.`);
+      await storage.updateEndpointStatus(endpoint.id, {
+        status: "error",
+        errorMessage: `Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) exceeded`,
+        nextReconnectAt: undefined,
+      });
+      this.reconnectStates.delete(endpoint.id);
+      return;
+    }
+
+    const delayMs = Math.min(
+      RECONNECT_DELAY_BASE_MS * Math.pow(2, rs.attempts - 1),
+      RECONNECT_DELAY_MAX_MS,
+    );
+
+    const nextReconnectAt = new Date(Date.now() + delayMs).toISOString();
+    console.log(`[${endpoint.name}] Reconnect attempt ${rs.attempts}/${MAX_RECONNECT_ATTEMPTS} in ${delayMs / 1000}s`);
+
+    await storage.updateEndpointStatus(endpoint.id, {
+      status: "reconnecting",
+      reconnectCount: rs.attempts,
+      nextReconnectAt,
+    });
+
+    if (rs.timer) clearTimeout(rs.timer);
+
+    rs.timer = setTimeout(async () => {
+      const state = await storage.getStreamingState();
+      if (!state.isStreaming) {
+        this.reconnectStates.delete(endpoint.id);
+        return;
+      }
+
+      const latestEndpoint = await storage.getRtmpEndpoint(endpoint.id);
+      if (!latestEndpoint || !latestEndpoint.enabled) {
+        this.reconnectStates.delete(endpoint.id);
+        return;
+      }
+
+      await this.startEndpointStream(videoSource, latestEndpoint, durationSeconds, true);
+    }, delayMs);
+  }
+
   async stopStreaming(): Promise<void> {
-    // Stop all processes
+    for (const [id, rs] of this.reconnectStates.entries()) {
+      if (rs.timer) clearTimeout(rs.timer);
+      this.reconnectStates.delete(id);
+    }
+
     const entries = Array.from(this.processes.entries());
     for (const [id, streamProc] of entries) {
       streamProc.ffmpegProcess.kill("SIGTERM");
-      await storage.updateEndpointStatus(id, {
-        status: "stopped",
-      });
+      await storage.updateEndpointStatus(id, { status: "stopped" });
     }
     this.processes.clear();
 
-    // Stop monitoring
     if (this.monitorInterval) {
       clearInterval(this.monitorInterval);
       this.monitorInterval = null;
     }
 
-    // Update state
-    await storage.setStreamingState({
-      isStreaming: false,
-      startedAt: undefined,
-    });
+    await storage.setStreamingState({ isStreaming: false, startedAt: undefined });
 
-    // Send Telegram notification
     await telegramService.notifyStreamStop();
   }
 
@@ -248,23 +305,17 @@ class StreamingService {
         return;
       }
 
-      // Check if all processes are dead
-      let allDead = true;
-      const entries = Array.from(this.processes.entries());
-      for (const [, streamProc] of entries) {
-        if (!streamProc.ffmpegProcess.killed) {
-          allDead = false;
-        }
-      }
+      const hasActiveProcesses = this.processes.size > 0;
+      const hasPendingReconnects = this.reconnectStates.size > 0;
 
-      if (allDead && this.processes.size === 0) {
+      if (!hasActiveProcesses && !hasPendingReconnects) {
         await this.stopStreaming();
       }
     }, 5000);
   }
 
   isStreaming(): boolean {
-    return this.processes.size > 0;
+    return this.processes.size > 0 || this.reconnectStates.size > 0;
   }
 }
 

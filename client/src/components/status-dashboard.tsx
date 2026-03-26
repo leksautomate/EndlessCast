@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, AlertTriangle, Loader2 } from "lucide-react";
+import { Activity, AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { SiYoutube, SiFacebook } from "react-icons/si";
 import type { RtmpEndpoint, StreamingState, RtmpPlatform, StreamStatus } from "@shared/schema";
 import { platformInfo } from "@shared/schema";
@@ -64,6 +64,13 @@ function getStatusBadge(status: StreamStatus["status"]) {
         <Badge variant="secondary" className="bg-status-busy/10 text-status-busy border-status-busy/20">
           <AlertTriangle className="w-3 h-3 mr-1" />
           Error
+        </Badge>
+      );
+    case "reconnecting":
+      return (
+        <Badge variant="secondary" className="bg-status-away/10 text-status-away border-status-away/20">
+          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+          Reconnecting
         </Badge>
       );
     case "stopped":
@@ -132,7 +139,7 @@ export function StatusDashboard({
                   ? "bg-status-online/5 border-status-online/30"
                   : status.status === "error"
                     ? "bg-status-busy/5 border-status-busy/30"
-                    : status.status === "connecting"
+                    : status.status === "connecting" || status.status === "reconnecting"
                       ? "bg-status-away/5 border-status-away/30"
                       : "bg-muted/30"
                   }`}
@@ -182,6 +189,27 @@ export function StatusDashboard({
                     <p className="text-xs text-status-busy">
                       {status.errorMessage}
                     </p>
+                  </div>
+                )}
+
+                {/* Reconnecting info */}
+                {status.status === "reconnecting" && (
+                  <div className="mt-3 pt-3 border-t border-status-away/20 space-y-1">
+                    {(status.reconnectCount ?? 0) > 0 && (
+                      <p className="text-xs text-status-away">
+                        Attempt {status.reconnectCount} of 10
+                      </p>
+                    )}
+                    {status.nextReconnectAt && (
+                      <p className="text-xs text-muted-foreground">
+                        Retrying at {new Date(status.nextReconnectAt).toLocaleTimeString()}
+                      </p>
+                    )}
+                    {status.errorMessage && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {status.errorMessage}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

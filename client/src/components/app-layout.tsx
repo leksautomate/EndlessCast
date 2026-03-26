@@ -26,6 +26,7 @@ import {
   X,
   LayoutDashboard,
   ScrollText,
+  Cpu,
 } from "lucide-react";
 import type { StreamingState } from "@shared/schema";
 import type { ThemeColor } from "@shared/schema";
@@ -41,6 +42,7 @@ const navItems: NavItem[] = [
   { href: "/app", icon: LayoutDashboard, label: "Overview", shortLabel: "Overview" },
   { href: "/app/videos", icon: MonitorPlay, label: "Videos", shortLabel: "Videos" },
   { href: "/app/destinations", icon: Server, label: "Destinations", shortLabel: "Dest." },
+  { href: "/app/system", icon: Cpu, label: "System", shortLabel: "System" },
   { href: "/app/logs", icon: ScrollText, label: "Event Log", shortLabel: "Logs" },
   { href: "/app/settings", icon: Settings, label: "Settings", shortLabel: "Settings" },
 ];

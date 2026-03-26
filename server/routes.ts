@@ -4,6 +4,7 @@ import type { Server } from "http";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import os from "os";
 import { promisify } from "util";
 import { exec } from "child_process";
 import { storage } from "./storage";
@@ -535,6 +536,83 @@ export async function registerRoutes(
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: "Failed to clear extra camera" });
+    }
+  });
+
+  // ============ SYSTEM INFO ROUTE ============
+
+  app.get("/api/system", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const cpus = os.cpus();
+      const cpuModel = cpus[0]?.model?.trim() ?? "Unknown";
+      const cpuCores = cpus.length;
+      const arch = os.arch();
+
+      const totalRam = os.totalmem();
+      const freeRam = os.freemem();
+      const usedRam = totalRam - freeRam;
+
+      // Disk info via df
+      let diskTotal = 0, diskFree = 0, diskAvailable = false;
+      try {
+        const { stdout } = await execAsync("df -B1 / 2>/dev/null | tail -1");
+        const parts = stdout.trim().split(/\s+/);
+        diskTotal = parseInt(parts[1]) || 0;
+        diskFree = parseInt(parts[3]) || 0;
+        diskAvailable = diskTotal > 0;
+      } catch { /* disk stats unavailable */ }
+
+      // FFmpeg version
+      let ffmpegVersion = "not found";
+      let ffmpegAvailable = false;
+      try {
+        const { stdout } = await execAsync("ffmpeg -version 2>&1 | head -1");
+        const match = stdout.match(/ffmpeg version ([^\s]+)/);
+        ffmpegVersion = match ? match[1] : "unknown";
+        ffmpegAvailable = true;
+      } catch { /* FFmpeg not available */ }
+
+      const uploadsInfo = await storage.getStorageInfo();
+      const streamingState = await storage.getStreamingState();
+      const endpoints = await storage.getRtmpEndpoints();
+      const activeStreams = streamingState.endpointStatuses?.filter(s => s.status === "live").length ?? 0;
+      const enabledEndpoints = endpoints.filter(e => e.enabled).length;
+
+      // Capacity estimates (libx264 veryfast)
+      const coresPerStream1080p = 2;    // conservative: 2 cores per 1080p stream
+      const coresPerStream720p = 1;     // 1 core per 720p stream
+      const ramPerStream = 512 * 1024 * 1024; // 512 MB per stream
+      const bandwidthPer1080p = 6.2;   // Mbps (6000k video + 160k audio)
+      const bandwidthPer720p = 3.2;    // Mbps (3000k video + 160k audio)
+
+      const maxByCpu1080p = Math.max(1, Math.floor(cpuCores / coresPerStream1080p));
+      const maxByRam1080p = Math.max(1, Math.floor(totalRam / ramPerStream));
+      const maxByCpu720p = Math.max(1, Math.floor(cpuCores / coresPerStream720p));
+      const maxByRam720p = Math.max(1, Math.floor(totalRam / ramPerStream));
+
+      res.json({
+        cpu: { model: cpuModel, cores: cpuCores, arch },
+        ram: { total: totalRam, free: freeRam, used: usedRam },
+        disk: { total: diskTotal, free: diskFree, used: diskTotal - diskFree, available: diskAvailable },
+        uploads: uploadsInfo,
+        ffmpeg: { version: ffmpegVersion, available: ffmpegAvailable },
+        node: { version: process.version },
+        os: { platform: os.platform(), release: os.release(), type: os.type() },
+        uptime: { system: os.uptime(), process: process.uptime() },
+        streaming: { active: activeStreams, enabled: enabledEndpoints },
+        capacity: {
+          max1080pByCpu: maxByCpu1080p,
+          max1080pByRam: maxByRam1080p,
+          max720pByCpu: maxByCpu720p,
+          max720pByRam: maxByRam720p,
+          recommended1080p: Math.min(maxByCpu1080p, maxByRam1080p),
+          recommended720p: Math.min(maxByCpu720p, maxByRam720p),
+          bandwidthPer1080pMbps: bandwidthPer1080p,
+          bandwidthPer720pMbps: bandwidthPer720p,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to get system info" });
     }
   });
 

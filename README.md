@@ -49,6 +49,38 @@ sudo yum install -y epel-release ffmpeg
 brew install ffmpeg
 ```
 
+### Multi-Platform Streaming Requirements
+
+EndlessCast encodes each destination stream independently using `libx264` (veryfast preset). CPU and RAM usage scales linearly with the number of simultaneous streams.
+
+> **Check your server's capacity live** on the **System** page in the dashboard.
+
+#### CPU & RAM per stream count
+
+| Simultaneous Streams | Resolution | CPU Cores Needed | RAM Needed | Upload Bandwidth |
+|----------------------|------------|------------------|------------|-----------------|
+| 1×                   | 1080p      | 2 cores          | 512 MB     | ~6.2 Mbps       |
+| 2×                   | 1080p      | 4 cores          | 1 GB       | ~12.4 Mbps      |
+| 3×                   | 1080p      | 6 cores          | 1.5 GB     | ~18.6 Mbps      |
+| 4×                   | 1080p      | 8 cores          | 2 GB       | ~24.8 Mbps      |
+| 6×                   | 1080p      | 12 cores         | 3 GB       | ~37.2 Mbps      |
+| 1×                   | 720p       | 1 core           | 256 MB     | ~3.2 Mbps       |
+| 2×                   | 720p       | 2 cores          | 512 MB     | ~6.4 Mbps       |
+| 4×                   | 720p       | 4 cores          | 1 GB       | ~12.8 Mbps      |
+| 6×                   | 720p       | 6 cores          | 1.5 GB     | ~19.2 Mbps      |
+
+#### Recommended VPS specs for multi-platform streaming
+
+| Streams | Resolution | Recommended VPS                                    |
+|---------|------------|----------------------------------------------------|
+| 1–2     | 1080p      | 4 vCPU / 4 GB RAM (Hetzner CX22, DO Basic 4GB)    |
+| 3–4     | 1080p      | 8 vCPU / 8 GB RAM (Hetzner CX32, DO General 8GB)  |
+| 5–6     | 1080p      | 12–16 vCPU / 16 GB RAM (dedicated or high-CPU VPS)|
+| 1–4     | 720p       | 4 vCPU / 2 GB RAM — very cost-effective option     |
+
+> **Tip:** Use the Landscape 720p output profile to roughly halve CPU usage per stream.
+> Use a VPS with **dedicated** CPU cores (not shared/burstable) for stable 24/7 operation.
+
 ---
 
 ## Quick Install (VPS / Linux Server)

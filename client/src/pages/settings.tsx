@@ -16,10 +16,10 @@ import { useTheme, themePresets } from "@/components/theme-provider";
 import { 
   Mail, 
   AlertCircle, 
-  ArrowLeft, 
   Palette, 
   Send,
   Terminal,
+  ChevronRight,
   Wifi,
   Eye,
   EyeOff,
@@ -238,31 +238,14 @@ export default function Settings({ onLogout }: SettingsProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background p-3 sm:p-6">
+    <div className="p-4 sm:p-6">
       <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setLocation("/app")}
-            className="h-8 w-8 sm:h-9 sm:w-9"
-            data-testid="button-back"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded border border-primary/50 flex items-center justify-center bg-primary/10">
-              <Wifi className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-2xl font-bold text-primary glow-sm" data-testid="heading-settings">
-                Settings
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground font-mono hidden sm:block">
-                <span className="text-primary">&gt;</span> Configure EndlessCast
-              </p>
-            </div>
-          </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+          <Terminal className="w-3 h-3 text-primary" />
+          <span className="text-primary">root@endlesscast</span>
+          <ChevronRight className="w-3 h-3" />
+          <span className="text-foreground">settings</span>
+          <span className="animate-pulse">_</span>
         </div>
 
         <Tabs defaultValue="theme" className="w-full">

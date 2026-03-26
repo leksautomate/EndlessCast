@@ -5,8 +5,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AppLayout } from "@/components/app-layout";
 import NotFound from "@/pages/not-found";
-import Dashboard from "@/pages/dashboard";
+import Overview from "@/pages/overview";
+import Videos from "@/pages/videos";
+import Destinations from "@/pages/destinations";
 import Settings from "@/pages/settings";
 import Landing from "@/pages/landing";
 import { LoginPage } from "@/pages/login";
@@ -30,7 +33,7 @@ function useAuth() {
   useEffect(() => {
     const checkAuth = async () => {
       const sessionId = localStorage.getItem("sessionId");
-      
+
       if (!sessionId) {
         setIsAuthenticated(false);
         return;
@@ -61,7 +64,6 @@ function useAuth() {
 
 function AppRouter() {
   const { isAuthenticated, login, logout } = useAuth();
-  const [location] = useLocation();
 
   if (isAuthenticated === null) {
     return <LoadingScreen />;
@@ -72,23 +74,55 @@ function AppRouter() {
       <Route path="/">
         {isAuthenticated ? <Redirect to="/app" /> : <Landing />}
       </Route>
-      
+
       <Route path="/login">
         {isAuthenticated ? <Redirect to="/app" /> : <LoginPage onLogin={login} />}
       </Route>
-      
+
       <Route path="/app">
-        {isAuthenticated ? <Dashboard onLogout={logout} /> : <Redirect to="/login" />}
+        {isAuthenticated ? (
+          <AppLayout onLogout={logout}>
+            <Overview />
+          </AppLayout>
+        ) : (
+          <Redirect to="/login" />
+        )}
       </Route>
-      
+
+      <Route path="/app/videos">
+        {isAuthenticated ? (
+          <AppLayout onLogout={logout}>
+            <Videos />
+          </AppLayout>
+        ) : (
+          <Redirect to="/login" />
+        )}
+      </Route>
+
+      <Route path="/app/destinations">
+        {isAuthenticated ? (
+          <AppLayout onLogout={logout}>
+            <Destinations />
+          </AppLayout>
+        ) : (
+          <Redirect to="/login" />
+        )}
+      </Route>
+
       <Route path="/app/settings">
-        {isAuthenticated ? <Settings onLogout={logout} /> : <Redirect to="/login" />}
+        {isAuthenticated ? (
+          <AppLayout onLogout={logout}>
+            <Settings />
+          </AppLayout>
+        ) : (
+          <Redirect to="/login" />
+        )}
       </Route>
-      
+
       <Route path="/settings">
-        {isAuthenticated ? <Settings onLogout={logout} /> : <Redirect to="/login" />}
+        {isAuthenticated ? <Redirect to="/app/settings" /> : <Redirect to="/login" />}
       </Route>
-      
+
       <Route component={NotFound} />
     </Switch>
   );

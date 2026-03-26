@@ -43,8 +43,10 @@ const uploadStorage = multer.diskStorage({
 const upload = multer({
   storage: uploadStorage,
   limits: {
-    fileSize: MAX_STORAGE_BYTES, // Max single file size
+    fileSize: MAX_STORAGE_BYTES,
+    fieldSize: 200 * 1024 * 1024,
   },
+  highWaterMark: 16 * 1024 * 1024, // 16 MB chunks for faster streaming
   fileFilter: (_req, file, cb) => {
     const allowedTypes = ["video/mp4", "video/quicktime", "video/x-matroska"];
     const allowedExts = [".mp4", ".mov", ".mkv"];

@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Play, Square, Film, AlertCircle, Loader2, Radio } from "lucide-react";
 import type { Video, StreamingState } from "@shared/schema";
 import { formatDuration } from "@shared/schema";
@@ -54,19 +52,19 @@ export function StreamingControls({
       {/* Status row */}
       <div className="flex items-center justify-between min-h-[28px]">
         {isStreaming ? (
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-2.5 w-2.5">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
             </span>
             <span className="text-xs font-semibold text-green-500 uppercase tracking-widest">Live</span>
-            <span className="text-muted-foreground/30 mx-0.5">·</span>
-            <span
-              className="text-xl font-bold tabular-nums text-green-400 leading-none"
+            <div
+              className="px-3 py-1.5 rounded-lg border border-green-500/25 bg-black/50 font-mono tabular-nums text-green-400 text-xl leading-none tracking-widest"
+              style={{ fontFamily: "'Courier New', 'JetBrains Mono', monospace", textShadow: "0 0 10px rgba(74,222,128,0.8)" }}
               data-testid="text-stream-duration"
             >
               {formatDuration(elapsedTime)}
-            </span>
+            </div>
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -124,34 +122,32 @@ export function StreamingControls({
       {/* Duration + action button row */}
       <div className="flex items-end gap-3">
         {!isStreaming && (
-          <div className="flex items-end gap-1.5 flex-shrink-0">
-            <div className="space-y-1">
-              <Label htmlFor="hours" className="text-[10px] uppercase tracking-widest text-muted-foreground/40 block text-center">
-                HH
-              </Label>
-              <Input
+          <div className="flex-shrink-0 space-y-1">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 text-center">Duration</p>
+            <div
+              className="flex items-center gap-0 rounded-lg border border-border/40 bg-black/50 overflow-hidden"
+              style={{ fontFamily: "'Courier New', 'JetBrains Mono', monospace" }}
+            >
+              <input
                 id="hours"
                 type="number"
                 min="0"
-                value={hours}
+                value={String(hours).padStart(2, "0")}
                 onChange={(e) => setHours(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-14 h-10 text-center tabular-nums font-bold text-base bg-muted/30 border-border/40 focus:border-primary/50"
+                className="w-12 h-10 text-center tabular-nums font-bold text-base bg-transparent border-0 outline-none text-foreground/80 focus:text-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                style={{ textShadow: "0 0 6px rgba(255,255,255,0.15)" }}
                 data-testid="input-duration-hours"
               />
-            </div>
-            <div className="pb-2 text-muted-foreground/25 font-bold text-lg leading-none">:</div>
-            <div className="space-y-1">
-              <Label htmlFor="minutes" className="text-[10px] uppercase tracking-widest text-muted-foreground/40 block text-center">
-                MM
-              </Label>
-              <Input
+              <span className="text-muted-foreground/30 font-bold text-lg select-none">:</span>
+              <input
                 id="minutes"
                 type="number"
                 min="0"
                 max="59"
-                value={minutes}
+                value={String(minutes).padStart(2, "0")}
                 onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
-                className="w-14 h-10 text-center tabular-nums font-bold text-base bg-muted/30 border-border/40 focus:border-primary/50"
+                className="w-12 h-10 text-center tabular-nums font-bold text-base bg-transparent border-0 outline-none text-foreground/80 focus:text-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                style={{ textShadow: "0 0 6px rgba(255,255,255,0.15)" }}
                 data-testid="input-duration-minutes"
               />
             </div>

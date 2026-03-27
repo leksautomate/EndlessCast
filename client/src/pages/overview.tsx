@@ -136,112 +136,123 @@ export default function Overview() {
         </div>
       )}
 
-      <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className={`rounded-xl border p-4 ${isLive ? "border-green-500/20 bg-green-500/5" : "border-border/60 bg-card"}`}>
-            <p className="text-xs text-muted-foreground mb-2">Status</p>
-            <div className="flex items-end justify-between gap-2">
-              <span
-                className={`text-2xl font-bold ${isLive ? "text-green-500" : "text-muted-foreground/50"}`}
-                data-testid="text-stream-status"
-              >
-                {isLive ? "LIVE" : "Offline"}
-              </span>
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                isLive ? "bg-green-500/10" : "bg-muted/30"
-              }`}>
-                <Activity className={`w-4 h-4 ${isLive ? "text-green-500" : "text-muted-foreground/30"}`} />
+      <div className="p-4 sm:p-6 max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-[1fr_288px] gap-5">
+
+          {/* ── Left column: primary action ── */}
+          <div className="space-y-5 min-w-0">
+            <div className={`rounded-xl border p-5 ${
+              isLive
+                ? "border-green-500/25 bg-green-500/5 live-border-pulse"
+                : "border-border/60 bg-card"
+            }`}>
+              <SectionHeader icon={Zap} label="Stream Control" accent={isLive} />
+              <StreamingControls
+                selectedVideo={selectedVideo}
+                streamingState={streamingState}
+                enabledEndpointsCount={enabledEndpoints.length}
+                isStarting={startStreamMutation.isPending}
+                isStopping={stopStreamMutation.isPending}
+                onStart={(durationSeconds) => startStreamMutation.mutate(durationSeconds)}
+                onStop={() => stopStreamMutation.mutate()}
+              />
+            </div>
+
+            {isLive && (
+              <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-5 slide-down">
+                <SectionHeader icon={Activity} label="Stream Health" accent />
+                <StreamHealthMonitor endpoints={enabledEndpoints} streamingState={streamingState} />
               </div>
+            )}
+
+            <div className="rounded-xl border border-border/60 bg-card p-5">
+              <SectionHeader icon={Camera} label="Extra Camera (PiP)" />
+              <ExtraCameraPanel videos={videos} streamingState={streamingState} />
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/60 bg-card p-4">
-            <p className="text-xs text-muted-foreground mb-2">Uptime</p>
-            <div className="flex items-end justify-between gap-2">
-              <span className="text-2xl font-bold text-foreground/80 tabular-nums" data-testid="text-uptime-sm">
-                {isLive ? uptime : "--:--"}
-              </span>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-                <Clock className="w-4 h-4 text-primary/60" />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border/60 bg-card p-4">
-            <p className="text-xs text-muted-foreground mb-2">Endpoints</p>
-            <div className="flex items-end justify-between gap-2">
-              <div>
-                <span className="text-2xl font-bold tabular-nums" data-testid="text-endpoints-count">
-                  <span className={isLive ? "text-green-500" : "text-foreground/70"}>{liveEndpoints}</span>
-                  <span className="text-muted-foreground/40 text-lg">/{enabledEndpoints.length}</span>
-                </span>
-              </div>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-                <Radio className="w-4 h-4 text-primary/60" />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border/60 bg-card p-4">
-            <p className="text-xs text-muted-foreground mb-2">Storage</p>
-            <div className="flex items-end justify-between gap-2">
-              <span
-                className={`text-2xl font-bold ${storagePct > 90 ? "text-destructive" : storagePct > 70 ? "text-yellow-500" : "text-foreground/70"}`}
-                data-testid="text-storage-percent"
-              >
-                {storagePct}%
-              </span>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-                <Database className="w-4 h-4 text-primary/60" />
-              </div>
-            </div>
-            {storageInfo && (
-              <div className="mt-3">
-                <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${storagePct > 90 ? "bg-destructive" : "bg-primary/60"}`}
-                    style={{ width: `${storagePct}%` }}
-                  />
+          {/* ── Right column: stats + endpoint status ── */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
+              <div className={`rounded-xl border p-4 ${isLive ? "border-green-500/20 bg-green-500/5" : "border-border/60 bg-card"}`}>
+                <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest mb-2">Status</p>
+                <div className="flex items-end justify-between gap-2">
+                  <span
+                    className={`text-2xl font-bold ${isLive ? "text-green-500" : "text-muted-foreground/40"}`}
+                    data-testid="text-stream-status"
+                  >
+                    {isLive ? "LIVE" : "Offline"}
+                  </span>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    isLive ? "bg-green-500/10" : "bg-muted/30"
+                  }`}>
+                    <Activity className={`w-3.5 h-3.5 ${isLive ? "text-green-500" : "text-muted-foreground/30"}`} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-muted-foreground/60 mt-1.5">
-                  {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.limit)}
-                </p>
+              </div>
+
+              <div className="rounded-xl border border-border/60 bg-card p-4">
+                <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest mb-2">Uptime</p>
+                <div className="flex items-end justify-between gap-2">
+                  <span className="text-xl font-bold text-foreground/80 tabular-nums" data-testid="text-uptime-sm">
+                    {isLive ? uptime : "--:--"}
+                  </span>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
+                    <Clock className="w-3.5 h-3.5 text-primary/60" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/60 bg-card p-4">
+                <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest mb-2">Endpoints</p>
+                <div className="flex items-end justify-between gap-2">
+                  <span className="text-xl font-bold tabular-nums" data-testid="text-endpoints-count">
+                    <span className={isLive ? "text-green-500" : "text-foreground/70"}>{liveEndpoints}</span>
+                    <span className="text-muted-foreground/35 text-base">/{enabledEndpoints.length}</span>
+                  </span>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
+                    <Radio className="w-3.5 h-3.5 text-primary/60" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/60 bg-card p-4">
+                <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest mb-2">Storage</p>
+                <div className="flex items-end justify-between gap-2">
+                  <span
+                    className={`text-xl font-bold ${storagePct > 90 ? "text-destructive" : storagePct > 70 ? "text-yellow-500" : "text-foreground/70"}`}
+                    data-testid="text-storage-percent"
+                  >
+                    {storagePct}%
+                  </span>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
+                    <Database className="w-3.5 h-3.5 text-primary/60" />
+                  </div>
+                </div>
+                {storageInfo && (
+                  <div className="mt-2.5">
+                    <div className="h-1 bg-muted/30 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${storagePct > 90 ? "bg-destructive" : "bg-primary/60"}`}
+                        style={{ width: `${storagePct}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/50 mt-1">
+                      {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.limit)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {enabledEndpoints.length > 0 && (
+              <div className="rounded-xl border border-border/60 bg-card p-4">
+                <SectionHeader icon={Wifi} label="Endpoint Status" />
+                <StatusDashboard endpoints={enabledEndpoints} streamingState={streamingState} />
               </div>
             )}
           </div>
         </div>
-
-        <div className={`rounded-xl border p-5 ${isLive ? "border-green-500/20 bg-green-500/5" : "border-border/60 bg-card"}`}>
-          <SectionHeader icon={Zap} label="Stream Control" accent={isLive} />
-          <StreamingControls
-            selectedVideo={selectedVideo}
-            streamingState={streamingState}
-            enabledEndpointsCount={enabledEndpoints.length}
-            isStarting={startStreamMutation.isPending}
-            isStopping={stopStreamMutation.isPending}
-            onStart={(durationSeconds) => startStreamMutation.mutate(durationSeconds)}
-            onStop={() => stopStreamMutation.mutate()}
-          />
-        </div>
-
-        <div className="rounded-xl border border-border/60 bg-card p-5">
-          <SectionHeader icon={Camera} label="Extra Camera (PiP)" />
-          <ExtraCameraPanel videos={videos} streamingState={streamingState} />
-        </div>
-
-        {isLive && (
-          <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-5 slide-down">
-            <SectionHeader icon={Activity} label="Stream Health" accent />
-            <StreamHealthMonitor endpoints={enabledEndpoints} streamingState={streamingState} />
-          </div>
-        )}
-
-        {enabledEndpoints.length > 0 && (
-          <div className="rounded-xl border border-border/60 bg-card p-5">
-            <SectionHeader icon={Wifi} label="Endpoint Status" />
-            <StatusDashboard endpoints={enabledEndpoints} streamingState={streamingState} />
-          </div>
-        )}
       </div>
     </div>
   );

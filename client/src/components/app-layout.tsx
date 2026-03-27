@@ -73,30 +73,35 @@ export function AppLayout({ children, onLogout }: AppLayoutProps) {
       <aside
         className={`
           fixed top-0 left-0 h-full z-40 flex flex-col
-          w-60 bg-sidebar border-r border-sidebar-border
-          transition-transform duration-200 ease-in-out
+          w-60 border-r
+          ${isLive ? "border-green-500/15" : "border-sidebar-border"}
+          transition-all duration-300 ease-in-out
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0 lg:static lg:z-auto
         `}
+        style={{ background: "linear-gradient(180deg, hsl(var(--sidebar)) 0%, color-mix(in hsl, hsl(var(--sidebar)) 90%, transparent) 100%)" }}
       >
         <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border flex-shrink-0">
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-            isLive ? "bg-green-500/15" : "bg-primary/10"
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+            isLive ? "bg-green-500/15 shadow-[0_0_12px_rgba(34,197,94,0.2)]" : "bg-primary/10"
           }`}>
-            <Radio className={`w-4.5 h-4.5 ${isLive ? "text-green-500" : "text-primary"}`} />
+            <Radio className={`w-5 h-5 ${isLive ? "text-green-500" : "text-primary"}`} />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-sm font-bold text-foreground leading-none">
+            <h1 className="text-[15px] font-bold text-foreground leading-none tracking-tight">
               EndlessCast
             </h1>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1.5">
               {isLive ? (
                 <span className="text-green-500 font-medium flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  Live · {liveCount} channel{liveCount !== 1 ? "s" : ""}
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                  </span>
+                  Live · {liveCount} ch
                 </span>
               ) : (
-                "Offline"
+                <span className="opacity-40">Offline</span>
               )}
             </p>
           </div>
@@ -122,16 +127,16 @@ export function AppLayout({ children, onLogout }: AppLayoutProps) {
               <Link key={item.href} href={item.href}>
                 <a
                   className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150
+                    flex items-center gap-3 px-3 py-2.5 text-sm transition-all duration-150
                     ${active
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      ? "rounded-r-lg bg-primary/10 text-primary font-medium border-l-2 border-primary pl-[10px]"
+                      : "rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40"
                     }
                   `}
                   onClick={() => setSidebarOpen(false)}
                   data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >
-                  <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-primary" : ""}`} />
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-primary" : "opacity-60"}`} />
                   <span>{item.label}</span>
                 </a>
               </Link>

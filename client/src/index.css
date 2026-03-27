@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -9,7 +9,7 @@
   --foreground: 210 20% 92%;
   --border: 217 33% 17%;
 
-  --card: 222 47% 8%;
+  --card: 222 47% 9%;
   --card-foreground: 210 20% 92%;
   --card-border: 217 33% 17%;
 
@@ -52,7 +52,7 @@
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: 'Inter', system-ui, sans-serif;
-  --font-mono: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   --radius: 0.5rem;
 
@@ -178,12 +178,13 @@
 
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
   .active-elevate:active:not(.no-default-active-elevate)::after {
-    background-color: var(--elevate-1);
+    background-color: var(--elevate-2);
   }
 
   .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
   .active-elevate-2:active:not(.no-default-active-elevate)::after {
     background-color: var(--elevate-2);
+    opacity: 1.5;
   }
 
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
@@ -232,8 +233,62 @@
 
   @keyframes liveBorderPulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.0); }
-    50% { box-shadow: 0 0 12px rgba(34, 197, 94, 0.1); }
+    50% { box-shadow: 0 0 16px rgba(34, 197, 94, 0.18); }
   }
+}
+
+/* ── Terminal font mode ──────────────────────────────────────────────────── */
+[data-terminal-font="true"] .font-sans,
+[data-terminal-font="true"] body {
+  font-family: var(--font-mono);
+}
+
+[data-terminal-font="true"] h1,
+[data-terminal-font="true"] h2,
+[data-terminal-font="true"] h3,
+[data-terminal-font="true"] .tabular-nums,
+[data-terminal-font="true"] nav a span,
+[data-terminal-font="true"] .text-2xl,
+[data-terminal-font="true"] .text-xl {
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
+}
+
+/* ── Glow mode ───────────────────────────────────────────────────────────── */
+[data-glow="true"] button[data-variant="default"]:not(:disabled):hover,
+[data-glow="true"] [data-primary-btn]:hover {
+  box-shadow: 0 0 16px hsl(var(--primary) / 0.35);
+}
+
+[data-glow="true"] *:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px hsl(var(--primary) / 0.15);
+}
+
+[data-glow="true"] .text-green-500 {
+  text-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
+}
+
+[data-glow="true"] .bg-green-500\/10,
+[data-glow="true"] [class*="bg-green-500"] {
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.2));
+}
+
+/* ── Scanlines overlay ───────────────────────────────────────────────────── */
+[data-scanlines="true"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
 }
 
 *:focus-visible {

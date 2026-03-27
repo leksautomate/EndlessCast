@@ -16,9 +16,9 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const defaultSettings: ThemeSettings = {
   colorTheme: "ocean",
-  terminalFont: false,
+  terminalFont: true,
   scanlines: false,
-  glowEffects: false,
+  glowEffects: true,
 };
 
 function applyThemeVariables(theme: ThemeColor) {
@@ -105,6 +105,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const theme = currentSettings.colorTheme;
 
     document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-terminal-font", currentSettings.terminalFont ? "true" : "false");
+    document.documentElement.setAttribute("data-glow", currentSettings.glowEffects ? "true" : "false");
+    document.documentElement.setAttribute("data-scanlines", currentSettings.scanlines ? "true" : "false");
     document.documentElement.classList.add("dark");
 
     applyThemeVariables(theme);

@@ -14,6 +14,7 @@ Stream your videos continuously to YouTube Live, Facebook Live, Rumble, Odysee, 
 - **Multi-platform broadcasting** — up to 6+ endpoints simultaneously
 - **Extra Camera (PiP)** — overlay a second video as a picture-in-picture in any corner
 - **Per-endpoint output profiles** — Landscape 1080p/720p, Portrait 1080p, Square 1080p
+- **Per-destination video** — assign a different video file to each RTMP endpoint
 - **Auto-reconnect** — up to 3 automatic reconnect attempts on failure
 - **Real-time health monitoring** — bitrate, FPS, frame drops per endpoint
 - **Event log** — terminal-style in-app log of all stream events, errors, and reconnects
@@ -22,7 +23,7 @@ Stream your videos continuously to YouTube Live, Facebook Live, Rumble, Odysee, 
 - **Playlist support** — queue multiple videos to play in sequence
 - **200 GB storage**, up to 16 videos
 - **7 color themes** (Matrix, Cyber Blue, Neon, Sunset, Ocean, Amber, Violet)
-- **Mobile-responsive** hacker/terminal aesthetic
+- **Broadcast Operations Center UI** — VT323 terminal aesthetic, live status top bar, console-pane panels
 
 ---
 
@@ -101,56 +102,72 @@ chmod +x install.sh
 ```
 
 The interactive installer will:
+
 1. Check Node.js, FFmpeg, and Git are installed
-2. Let you choose a port (or use a custom one)
-3. Set up admin username and password
+2. Let you choose a port (or enter a custom one)
+3. Set up admin username and password (bcrypt-hashed)
 4. Install npm dependencies
-5. Create `start.sh` and `endlesscast.service` files
+5. Generate four management scripts: `start.sh`, `stop.sh`, `status.sh`, `restart.sh`
+6. Create `endlesscast.service` for systemd — and auto-install it if `sudo` is available
+7. Offer to start the server immediately **in the background** (no terminal blocking)
 
 ---
 
 ## Running EndlessCast
 
-### As a System Service (Recommended for 24/7)
+### Background Mode (Recommended)
+
+`start.sh` automatically picks the best background method available:
+
+- **pm2** — if installed, uses pm2 (survives reboots, has built-in monitoring)
+- **nohup** — fallback; runs detached, writes logs to `endlesscast.log`, PID to `endlesscast.pid`
 
 ```bash
-# Copy and enable the service
+./start.sh      # start in background — terminal returns immediately
+./stop.sh       # stop the running server
+./status.sh     # check if it's running, show port and log path
+./restart.sh    # stop + start in one command
+```
+
+#### Optional: install pm2 for the best experience
+
+```bash
+npm install -g pm2
+pm2 startup      # configure pm2 to auto-start on reboot
+```
+
+### As a System Service (Auto-start on reboot)
+
+The installer creates `endlesscast.service`. If `sudo` was available during install it's already enabled. Otherwise:
+
+```bash
 sudo cp endlesscast.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable endlesscast
 sudo systemctl start endlesscast
 ```
 
-**Service management commands:**
+**Service management:**
 
 ```bash
-sudo systemctl status endlesscast    # Check status
-sudo systemctl restart endlesscast   # Restart
-sudo systemctl stop endlesscast      # Stop
-sudo journalctl -u endlesscast -f    # Follow live logs
-sudo journalctl -u endlesscast --since "1 hour ago"   # Recent logs
+sudo systemctl status endlesscast
+sudo systemctl restart endlesscast
+sudo systemctl stop endlesscast
+sudo journalctl -u endlesscast -f                       # live logs
+sudo journalctl -u endlesscast --since "1 hour ago"     # recent logs
 ```
 
-### Manual Start
+### Foreground / Debug Mode
 
 ```bash
-./start.sh
+PORT=5050 node_modules/.bin/tsx server/index.ts
 # or
 PORT=5050 npm run dev
-```
-
-### Production Build
-
-```bash
-npm run build
-npm run start
 ```
 
 ---
 
 ## Updating on an Existing VPS
-
-When a new version is released, update your running installation:
 
 ```bash
 cd ~/EndlessCast
@@ -161,24 +178,13 @@ git pull origin main
 # Install any new dependencies
 npm install
 
-# Rebuild the application
-npm run build
-
 # Restart the service
+./restart.sh
+# or, if using systemd:
 sudo systemctl restart endlesscast
 
 # Verify it started correctly
-sudo systemctl status endlesscast
-```
-
-If the service is running in dev mode instead:
-
-```bash
-cd ~/EndlessCast
-git pull origin main
-npm install
-# Stop the old process (Ctrl+C or kill), then:
-./start.sh
+./status.sh
 ```
 
 ---
@@ -187,10 +193,10 @@ npm install
 
 ```bash
 # UFW (Ubuntu)
-sudo ufw allow 22/tcp     # SSH
-sudo ufw allow 80/tcp     # HTTP (if using Nginx)
-sudo ufw allow 443/tcp    # HTTPS (if using Nginx)
-sudo ufw allow YOUR_PORT/tcp   # Direct port (e.g. 5000)
+sudo ufw allow 22/tcp          # SSH
+sudo ufw allow 80/tcp          # HTTP (if using Nginx)
+sudo ufw allow 443/tcp         # HTTPS (if using Nginx)
+sudo ufw allow YOUR_PORT/tcp   # Direct port (e.g. 5050)
 sudo ufw enable
 
 # iptables alternative
@@ -257,7 +263,7 @@ sudo certbot --nginx -d your_domain.com
 | **Username** | `admin` |
 | **Password** | `admin123` |
 
-Change these during installation or by editing `.env` on your server.
+Change these during installation or by re-running `install.sh`.
 
 ---
 
@@ -266,8 +272,9 @@ Change these during installation or by editing `.env` on your server.
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | Server port | `5000` |
-| `ADMIN_USERNAME` | Admin login | `admin` |
+| `ADMIN_USERNAME` | Admin login username | `admin` |
 | `PASSWORD_HASH` | bcrypt hash of password | hash of `admin123` |
+| `NODE_ENV` | Runtime environment | `production` |
 
 ---
 
@@ -310,12 +317,13 @@ EndlessCast sends alerts when streams fail, endpoints disconnect, or the server 
 
 ## Troubleshooting
 
-### Service won't start
+### Server won't start / check what went wrong
 
 ```bash
-sudo journalctl -u endlesscast -n 50
-which node && node --version
-which ffmpeg && ffmpeg -version
+./status.sh                         # if using start.sh
+tail -f endlesscast.log             # nohup logs
+pm2 logs endlesscast                # if using pm2
+sudo journalctl -u endlesscast -n 50 --no-pager   # if using systemd
 ```
 
 ### Port already in use
@@ -328,21 +336,25 @@ sudo kill -9 <PID>
 ### Stream keeps stopping
 
 ```bash
-sudo journalctl -u endlesscast -f    # Watch live logs
-# Also check: Event Log page inside EndlessCast dashboard
+# Check live logs:
+tail -f endlesscast.log
+# or:
+pm2 logs endlesscast
+# Also check the Event Log page inside the EndlessCast dashboard
 ```
 
 ### Cannot access dashboard
 
-1. Check service is running: `sudo systemctl status endlesscast`
+1. Check the server is running: `./status.sh`
 2. Open firewall port: `sudo ufw allow YOUR_PORT/tcp`
-3. Check cloud provider security group settings
+3. Check cloud provider security group / firewall settings
 
 ### High CPU during streaming
 
-This is normal — FFmpeg is doing real-time video encoding. Solutions:
+This is expected — FFmpeg is doing real-time video encoding. Solutions:
+
 - Use a VPS with more CPU cores (4+ recommended for multi-platform)
-- Pre-encode videos to the target profile before uploading
+- Switch to the **Landscape 720p** output profile to halve CPU per stream
 - Reduce the number of simultaneous endpoints
 
 ---
@@ -361,27 +373,55 @@ This is normal — FFmpeg is doing real-time video encoding. Solutions:
 
 ## Changelog
 
+### v1.4.0 — 2026-03-27
+
+**UI Overhaul: Broadcast Operations Center**
+
+- Complete redesign across all pages — "Mission Control" terminal aesthetic
+- **VT323** display font for all big numbers and headings; **JetBrains Mono** for body text
+- Persistent top status bar on every page showing live/offline pill, active channel count, and terminal-style breadcrumb path
+- Sidebar: pulsing LED indicator, animated signal bars when live, VT323 clock
+- Console-pane card style (3px left accent border) used consistently across all pages
+- Dot-grid atmospheric background + scanlines overlay
+- Redesigned landing page: dramatic two-column hero with animated terminal boot sequence, animated count-up stats, feature grid with category tags, live terminal output demo
+
+**Installer Improvements**
+
+- `install.sh` now generates `stop.sh`, `status.sh`, and `restart.sh` — full process management out of the box
+- `start.sh` runs EndlessCast **in the background** automatically (pm2 → nohup fallback) — no more terminal blocking
+- Auto-installs systemd service if `sudo` is available without a password prompt
+- Systemd service uses `Restart=always` + `RestartSec=5` for real crash recovery
+- "Start now?" prompt offers: Background, Systemd, Foreground, or Skip
+
+**Bug Fixes**
+
+- Fixed duplicate video entries appearing in the library while a file was still uploading — caused by the upload queue draining on a stale snapshot that still showed the job as pending, triggering a second upload of the same file
+
+---
+
 ### v1.3.0 — 2026-03-26
 
 **New Features**
-- **Extra Camera (PiP)** — select a second video to overlay as a picture-in-picture in any corner of the stream (top-left, top-right, bottom-left, bottom-right) with configurable size (10–50%)
+- **Extra Camera (PiP)** — select a second video to overlay as a picture-in-picture in any corner (top-left, top-right, bottom-left, bottom-right) with configurable size (10–50%)
 - **Event Log page** — in-app terminal-style log of all stream events, errors, and reconnects with level filtering (Info / Warn / Error) and auto-refresh
 - Enhanced metadata: all page titles and Open Graph tags updated to "EndlessCast"
 
 **Improvements**
 - Log entries are now created for: stream start/stop, endpoint live, reconnect attempts, FFmpeg errors, permanent endpoint failures
-- All log entries are accessible via the new **Event Log** sidebar page
+
+---
 
 ### v1.2.0 — 2026-03-20
 
 **New Features**
 - **Per-endpoint output profiles** — Landscape 1080p, Landscape 720p, Portrait 1080p, Square 1080p (each with tailored FFmpeg encoding args)
-- **Auto-reconnect** — up to 3 automatic reconnect attempts per endpoint with 5-second delay; reconnect budget resets after a successful reconnect
+- **Auto-reconnect** — up to 3 automatic reconnect attempts per endpoint with 5-second delay; reconnect budget resets after a successful stream period
 
 **Improvements**
 - Profile badge displayed on RTMP endpoint cards
 - Reconnecting status shown in endpoint status dashboard
-- TypeScript fixes across streaming, storage, and schema layers
+
+---
 
 ### v1.1.0
 
@@ -390,6 +430,8 @@ This is normal — FFmpeg is doing real-time video encoding. Solutions:
 - Playlist support (queue multiple videos)
 - Telegram and Email notifications
 - 7 color theme presets
+
+---
 
 ### v1.0.0
 

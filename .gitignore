@@ -6,3 +6,5 @@ vite.config.ts.*
 uploads/
 *.mp4
 data/
+.env
+.env.backup

@@ -123,6 +123,10 @@ export class MemStorage implements IStorage {
         this.playlists = new Map(Object.entries(data.playlists || {}));
         this.scheduledStreams = new Map(Object.entries(data.scheduledStreams || {}));
         this.emailSettings = data.emailSettings || null;
+        const oldThemeMap: Record<string, string> = { matrix: "ocean", cyber: "arctic", neon: "violet", blood: "crimson", custom: "ocean" };
+        if (data.themeSettings && oldThemeMap[data.themeSettings.colorTheme]) {
+          data.themeSettings.colorTheme = oldThemeMap[data.themeSettings.colorTheme] as any;
+        }
         this.themeSettings = data.themeSettings || null;
         this.telegramSettings = data.telegramSettings || null;
         

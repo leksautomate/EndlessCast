@@ -295,19 +295,19 @@ export type LogEntry = z.infer<typeof logEntrySchema>;
 
 // Theme settings schema
 export const themeColors = [
-  "matrix", "cyber", "neon", "blood", "ocean", "amber", "violet", "custom"
+  "ocean", "crimson", "emerald", "amber", "violet", "arctic", "sunset", "slate"
 ] as const;
 
 export type ThemeColor = typeof themeColors[number];
 
 export const themeSettingsSchema = z.object({
-  colorTheme: z.enum(themeColors).default("matrix"),
+  colorTheme: z.enum(themeColors).default("ocean"),
   customPrimary: z.string().optional(),
   customAccent: z.string().optional(),
   customBackground: z.string().optional(),
-  terminalFont: z.boolean().default(true),
+  terminalFont: z.boolean().default(false),
   scanlines: z.boolean().default(false),
-  glowEffects: z.boolean().default(true),
+  glowEffects: z.boolean().default(false),
 });
 
 export type ThemeSettings = z.infer<typeof themeSettingsSchema>;
@@ -330,14 +330,132 @@ export type TelegramSettings = z.infer<typeof telegramSettingsSchema>;
 export const insertTelegramSettingsSchema = telegramSettingsSchema;
 export type InsertTelegramSettings = z.infer<typeof insertTelegramSettingsSchema>;
 
-// Theme color presets
-export const themePresets: Record<ThemeColor, { primary: string; accent: string; bg: string; name: string }> = {
-  matrix: { primary: "#00ff41", accent: "#008f11", bg: "#0d0d0d", name: "Matrix Green" },
-  cyber: { primary: "#00d4ff", accent: "#0099cc", bg: "#0a0a0f", name: "Cyber Blue" },
-  neon: { primary: "#ff00ff", accent: "#cc00cc", bg: "#0f0a0f", name: "Neon Pink" },
-  blood: { primary: "#ff3333", accent: "#cc0000", bg: "#0f0a0a", name: "Blood Red" },
-  ocean: { primary: "#00ffcc", accent: "#00ccaa", bg: "#0a0f0f", name: "Ocean Teal" },
-  amber: { primary: "#ffaa00", accent: "#cc8800", bg: "#0f0d0a", name: "Amber Gold" },
-  violet: { primary: "#aa66ff", accent: "#8844dd", bg: "#0d0a0f", name: "Violet Purple" },
-  custom: { primary: "#00ff41", accent: "#008f11", bg: "#0d0d0d", name: "Custom" },
+export interface ThemePreset {
+  name: string;
+  primary: string;
+  accent: string;
+  bg: string;
+  primaryHsl: string;
+  accentHsl: string;
+  bgHsl: string;
+  cardHsl: string;
+  borderHsl: string;
+  sidebarHsl: string;
+  mutedHsl: string;
+  inputHsl: string;
+}
+
+export const themePresets: Record<ThemeColor, ThemePreset> = {
+  ocean: {
+    name: "Ocean Blue",
+    primary: "#4B8BF5",
+    accent: "#3B7AE0",
+    bg: "#0B1426",
+    primaryHsl: "217 91% 60%",
+    accentHsl: "217 50% 15%",
+    bgHsl: "222 47% 6%",
+    cardHsl: "222 47% 8%",
+    borderHsl: "217 33% 17%",
+    sidebarHsl: "222 47% 5%",
+    mutedHsl: "217 20% 12%",
+    inputHsl: "217 25% 14%",
+  },
+  crimson: {
+    name: "Crimson",
+    primary: "#EF4444",
+    accent: "#DC2626",
+    bg: "#0F0A0A",
+    primaryHsl: "0 84% 60%",
+    accentHsl: "0 50% 15%",
+    bgHsl: "0 20% 5%",
+    cardHsl: "0 15% 8%",
+    borderHsl: "0 20% 16%",
+    sidebarHsl: "0 15% 4%",
+    mutedHsl: "0 12% 11%",
+    inputHsl: "0 15% 13%",
+  },
+  emerald: {
+    name: "Emerald",
+    primary: "#10B981",
+    accent: "#059669",
+    bg: "#0A1210",
+    primaryHsl: "160 84% 39%",
+    accentHsl: "160 50% 14%",
+    bgHsl: "160 25% 5%",
+    cardHsl: "160 20% 7%",
+    borderHsl: "160 20% 15%",
+    sidebarHsl: "160 20% 4%",
+    mutedHsl: "160 12% 11%",
+    inputHsl: "160 15% 12%",
+  },
+  amber: {
+    name: "Amber Gold",
+    primary: "#F59E0B",
+    accent: "#D97706",
+    bg: "#100E08",
+    primaryHsl: "38 92% 50%",
+    accentHsl: "38 45% 14%",
+    bgHsl: "38 30% 5%",
+    cardHsl: "38 22% 7%",
+    borderHsl: "38 22% 16%",
+    sidebarHsl: "38 22% 4%",
+    mutedHsl: "38 14% 11%",
+    inputHsl: "38 16% 13%",
+  },
+  violet: {
+    name: "Violet",
+    primary: "#8B5CF6",
+    accent: "#7C3AED",
+    bg: "#0D0A14",
+    primaryHsl: "263 84% 66%",
+    accentHsl: "263 50% 14%",
+    bgHsl: "263 30% 5%",
+    cardHsl: "263 22% 8%",
+    borderHsl: "263 22% 16%",
+    sidebarHsl: "263 22% 4%",
+    mutedHsl: "263 14% 11%",
+    inputHsl: "263 16% 13%",
+  },
+  arctic: {
+    name: "Arctic Cyan",
+    primary: "#06B6D4",
+    accent: "#0891B2",
+    bg: "#0A1114",
+    primaryHsl: "188 86% 43%",
+    accentHsl: "188 50% 14%",
+    bgHsl: "198 28% 5%",
+    cardHsl: "198 22% 8%",
+    borderHsl: "198 22% 16%",
+    sidebarHsl: "198 22% 4%",
+    mutedHsl: "198 14% 11%",
+    inputHsl: "198 16% 13%",
+  },
+  sunset: {
+    name: "Sunset",
+    primary: "#F97316",
+    accent: "#EA580C",
+    bg: "#110D09",
+    primaryHsl: "25 95% 53%",
+    accentHsl: "25 50% 14%",
+    bgHsl: "25 28% 5%",
+    cardHsl: "25 22% 8%",
+    borderHsl: "25 22% 16%",
+    sidebarHsl: "25 22% 4%",
+    mutedHsl: "25 14% 11%",
+    inputHsl: "25 16% 13%",
+  },
+  slate: {
+    name: "Slate",
+    primary: "#94A3B8",
+    accent: "#64748B",
+    bg: "#0C0E12",
+    primaryHsl: "215 16% 65%",
+    accentHsl: "215 14% 14%",
+    bgHsl: "220 18% 5%",
+    cardHsl: "220 14% 8%",
+    borderHsl: "220 14% 16%",
+    sidebarHsl: "220 14% 4%",
+    mutedHsl: "220 10% 11%",
+    inputHsl: "220 12% 13%",
+  },
 };

@@ -211,53 +211,93 @@ export default function Settings({ onLogout }: SettingsProps) {
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Palette className="w-4 h-4 text-primary" />
                 </div>
-                <h3 className="text-sm font-semibold text-foreground">Color Theme</h3>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Color Theme</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Choose a color scheme for your dashboard</p>
+                </div>
               </div>
               <div className="p-5 space-y-5">
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {(Object.keys(themePresets) as ThemeColor[]).filter(t => t !== "custom").map((themeKey) => (
-                    <button
-                      key={themeKey}
-                      onClick={() => setTheme(themeKey)}
-                      className={`p-3 sm:p-4 rounded-lg border transition-all ${
-                        theme === themeKey
-                          ? "border-primary bg-primary/10"
-                          : "border-border/40 hover:border-primary/30"
-                      }`}
-                      data-testid={`button-theme-${themeKey}`}
-                    >
-                      <div
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full mx-auto mb-2"
-                        style={{
-                          backgroundColor: themePresets[themeKey].primary,
-                          boxShadow: theme === themeKey ? `0 0 12px ${themePresets[themeKey].primary}` : "none",
-                        }}
-                      />
-                      <p className="text-xs text-center truncate text-muted-foreground">
-                        {themePresets[themeKey].name.split(" ")[0]}
-                      </p>
-                      {theme === themeKey && (
-                        <CheckCircle className="w-3.5 h-3.5 text-primary mx-auto mt-1" />
-                      )}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {(Object.keys(themePresets) as ThemeColor[]).map((themeKey) => {
+                    const preset = themePresets[themeKey];
+                    const isActive = theme === themeKey;
+                    return (
+                      <button
+                        key={themeKey}
+                        onClick={() => setTheme(themeKey)}
+                        className={`group relative rounded-xl border-2 transition-all duration-200 overflow-hidden ${
+                          isActive
+                            ? "border-current ring-1 ring-current/20 scale-[1.02]"
+                            : "border-border/40 hover:border-border hover:scale-[1.01]"
+                        }`}
+                        style={isActive ? { borderColor: preset.primary, color: preset.primary } : undefined}
+                        data-testid={`button-theme-${themeKey}`}
+                      >
+                        <div
+                          className="h-16 w-full relative"
+                          style={{ backgroundColor: preset.bg }}
+                        >
+                          <div className="absolute inset-0 flex items-center justify-center gap-1.5 p-2">
+                            <div className="w-3 h-8 rounded-sm" style={{ backgroundColor: preset.bg, border: `1px solid ${preset.primary}20` }} />
+                            <div className="flex-1 h-10 rounded-md flex flex-col gap-1 p-1.5" style={{ backgroundColor: `${preset.primary}10`, border: `1px solid ${preset.primary}15` }}>
+                              <div className="h-1.5 w-3/4 rounded-full" style={{ backgroundColor: `${preset.primary}40` }} />
+                              <div className="h-1.5 w-1/2 rounded-full" style={{ backgroundColor: `${preset.primary}25` }} />
+                            </div>
+                          </div>
+                          {isActive && (
+                            <div className="absolute top-1.5 right-1.5">
+                              <CheckCircle className="w-4 h-4" style={{ color: preset.primary }} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="px-3 py-2.5 flex items-center gap-2" style={{ backgroundColor: `${preset.bg}` }}>
+                          <div
+                            className="w-4 h-4 rounded-full flex-shrink-0 ring-2 ring-offset-1"
+                            style={{
+                              backgroundColor: preset.primary,
+                              ringColor: isActive ? preset.primary : "transparent",
+                              ringOffsetColor: preset.bg,
+                              boxShadow: isActive ? `0 0 8px ${preset.primary}60` : "none",
+                            }}
+                          />
+                          <span className="text-xs font-medium truncate" style={{ color: isActive ? preset.primary : "#9CA3AF" }}>
+                            {preset.name}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div className="pt-4 border-t border-border/50 hidden sm:block">
-                  <p className="text-xs text-muted-foreground mb-3">Preview</p>
-                  <div className="border border-border/40 rounded-lg p-4 space-y-3 bg-muted/20">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-                      <span className="text-sm text-primary">Primary Color Active</span>
+                <div className="pt-4 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground mb-3">Live Preview</p>
+                  <div className="rounded-xl border border-border/40 overflow-hidden">
+                    <div className="bg-card p-4 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                        <span className="text-sm font-medium text-primary">Active Stream</span>
+                        <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">Live</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="rounded-lg bg-muted/30 p-2.5 text-center">
+                          <p className="text-lg font-bold text-foreground">24</p>
+                          <p className="text-[10px] text-muted-foreground">Hours</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/30 p-2.5 text-center">
+                          <p className="text-lg font-bold text-primary">3</p>
+                          <p className="text-[10px] text-muted-foreground">Channels</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/30 p-2.5 text-center">
+                          <p className="text-lg font-bold text-foreground">67%</p>
+                          <p className="text-[10px] text-muted-foreground">Storage</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" data-testid="button-preview-primary">Primary</Button>
+                        <Button size="sm" variant="outline" data-testid="button-preview-outline">Outline</Button>
+                        <Button size="sm" variant="secondary" data-testid="button-preview-secondary">Secondary</Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                      <Button size="sm">Primary</Button>
-                      <Button size="sm" variant="outline">Outline</Button>
-                      <Button size="sm" variant="ghost">Ghost</Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Sample text with current theme applied
-                    </p>
                   </div>
                 </div>
               </div>

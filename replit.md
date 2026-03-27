@@ -6,9 +6,16 @@ EndlessCast is a web application that enables users to upload videos and stream 
 
 ## Recent Changes (March 27, 2026)
 
+- **Dynamic Theme System**: 8 switchable color themes that change the entire dashboard in real-time:
+  - Ocean Blue (default), Crimson (black+red), Emerald (green), Amber Gold, Violet, Arctic Cyan, Sunset (orange), Slate (neutral)
+  - Each theme defines full HSL color set: primary, accent, background, card, border, sidebar, muted, input
+  - Theme-provider dynamically applies CSS variables via `applyThemeVariables()` on selection
+  - Card/grid picker in Settings shows mini dashboard mockups for each theme with live preview
+  - Backward-compatible: old theme names (matrix→ocean, cyber→arctic, blood→crimson, etc.) auto-migrate
+  - Theme presets defined in `shared/schema.ts` as `ThemePreset` interface with HSL values
 - **Full UI Redesign**: Replaced hacker/terminal aesthetic with clean, modern dark theme (like Restream/Upstream):
   - Inter font everywhere (removed all monospace/VT323/JetBrains Mono usage)
-  - Navy/slate background (`#0d1117` style) with blue primary accents (`hsl(217 91% 60%)`)
+  - Navy/slate background with primary color accents
   - Rounded cards with subtle borders, clean section headers with icons
   - Modern landing page, login page, sidebar navigation, and all dashboard pages
   - Removed all terminal-specific CSS classes (console-pane, scanlines, dot-grid, glow effects)

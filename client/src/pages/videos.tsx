@@ -27,8 +27,11 @@ function formatBytes(bytes: number): string {
 
 export default function Videos() {
   const { toast } = useToast();
-  const [uploadQueue, setUploadQueue] = useState<UploadJob[]>([]);
+  const [uploadQueue, _setUploadQueue] = useState<UploadJob[]>([]);
   const activeCount = useRef(0);
+  const queueRef = useRef<UploadJob[]>([]);
+  const startedIds = useRef(new Set<string>());
+  const filesRef = useRef(new Map<string, File>());
 
   const { data: videos = [], isLoading: videosLoading } = useQuery<Video[]>({
     queryKey: ["/api/videos"],
@@ -41,9 +44,17 @@ export default function Videos() {
 
   const { data: storageInfo } = useQuery<StorageInfo>({ queryKey: ["/api/storage"] });
 
+  const setUploadQueue = useCallback((fn: (prev: UploadJob[]) => UploadJob[]) => {
+    _setUploadQueue((prev) => {
+      const next = fn(prev);
+      queueRef.current = next;
+      return next;
+    });
+  }, []);
+
   const updateJob = useCallback((id: string, patch: Partial<UploadJob>) => {
     setUploadQueue((q) => q.map((j) => (j.id === id ? { ...j, ...patch } : j)));
-  }, []);
+  }, [setUploadQueue]);
 
   const uploadFile = useCallback(
     (job: UploadJob, file: File) => {
@@ -91,23 +102,24 @@ export default function Videos() {
     [toast, updateJob]
   );
 
-  const drainQueue = useCallback(
-    (queue: UploadJob[], files: Map<string, File>) => {
-      const pending = queue.filter((j) => j.status === "pending");
-      while (activeCount.current < MAX_CONCURRENT && pending.length > 0) {
-        const job = pending.shift()!;
-        const file = files.get(job.id);
-        if (!file) continue;
-        activeCount.current++;
-        updateJob(job.id, { status: "uploading" });
-        uploadFile(job, file).finally(() => {
-          activeCount.current--;
-          drainQueue(queue, files);
-        });
-      }
-    },
-    [uploadFile, updateJob]
-  );
+  const drainQueue = useCallback(() => {
+    const queue = queueRef.current;
+    const pending = queue.filter(
+      (j) => j.status === "pending" && !startedIds.current.has(j.id)
+    );
+    while (activeCount.current < MAX_CONCURRENT && pending.length > 0) {
+      const job = pending.shift()!;
+      const file = filesRef.current.get(job.id);
+      if (!file) continue;
+      activeCount.current++;
+      startedIds.current.add(job.id);
+      updateJob(job.id, { status: "uploading" });
+      uploadFile(job, file).finally(() => {
+        activeCount.current--;
+        drainQueue();
+      });
+    }
+  }, [uploadFile, updateJob]);
 
   const handleUpload = useCallback(
     (selectedFiles: File[]) => {
@@ -121,21 +133,22 @@ export default function Videos() {
         status: "pending",
       }));
 
-      const fileMap = new Map<string, File>();
-      newJobs.forEach((j, i) => fileMap.set(j.id, selectedFiles[i]));
-
-      setUploadQueue((prev) => {
-        const next = [...prev, ...newJobs];
-        drainQueue(next, fileMap);
-        return next;
-      });
+      newJobs.forEach((j, i) => filesRef.current.set(j.id, selectedFiles[i]));
+      setUploadQueue((prev) => [...prev, ...newJobs]);
+      drainQueue();
     },
-    [drainQueue]
+    [drainQueue, setUploadQueue]
   );
 
   const clearDone = useCallback(() => {
-    setUploadQueue((q) => q.filter((j) => j.status !== "done" && j.status !== "error"));
-  }, []);
+    setUploadQueue((q) => {
+      q.filter((j) => j.status === "done" || j.status === "error").forEach((j) => {
+        startedIds.current.delete(j.id);
+        filesRef.current.delete(j.id);
+      });
+      return q.filter((j) => j.status !== "done" && j.status !== "error");
+    });
+  }, [setUploadQueue]);
 
   const deleteMutation = useMutation({
     mutationFn: async (videoId: string) => apiRequest("DELETE", `/api/videos/${videoId}`),

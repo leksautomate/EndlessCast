@@ -335,7 +335,7 @@ export async function registerRoutes(
   });
 
   // Update endpoint
-  app.patch("/api/rtmp-endpoints/:id", async (req: Request, res: Response) => {
+  app.patch("/api/rtmp-endpoints/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const endpoint = await storage.updateRtmpEndpoint(id, req.body);
@@ -387,9 +387,9 @@ export async function registerRoutes(
 
       // Delete old thumbnail if it exists
       if (endpoint.thumbnailPath) {
-        const oldPath = path.join(process.cwd(), endpoint.thumbnailPath.replace(/^\//, ""));
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
+        const resolvedOld = path.resolve(process.cwd(), endpoint.thumbnailPath.replace(/^\//, ""));
+        if (resolvedOld.startsWith(thumbnailsDir + path.sep) && fs.existsSync(resolvedOld)) {
+          fs.unlinkSync(resolvedOld);
         }
       }
 
@@ -412,9 +412,9 @@ export async function registerRoutes(
       }
 
       if (endpoint.thumbnailPath) {
-        const oldPath = path.join(process.cwd(), endpoint.thumbnailPath.replace(/^\//, ""));
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
+        const resolvedPath = path.resolve(process.cwd(), endpoint.thumbnailPath.replace(/^\//, ""));
+        if (resolvedPath.startsWith(thumbnailsDir + path.sep) && fs.existsSync(resolvedPath)) {
+          fs.unlinkSync(resolvedPath);
         }
       }
 
@@ -438,7 +438,7 @@ export async function registerRoutes(
   });
 
   // Select video for streaming
-  app.post("/api/streaming/select-video", async (req: Request, res: Response) => {
+  app.post("/api/streaming/select-video", requireAuth, async (req: Request, res: Response) => {
     try {
       const { videoId } = req.body;
 
@@ -685,7 +685,7 @@ export async function registerRoutes(
   });
 
   // Test email connection
-  app.post("/api/email-settings/test", async (req: Request, res: Response) => {
+  app.post("/api/email-settings/test", requireAuth, async (req: Request, res: Response) => {
     try {
       const parsed = insertEmailSettingsSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -716,7 +716,7 @@ export async function registerRoutes(
   });
 
   // Update theme settings
-  app.post("/api/theme-settings", async (req: Request, res: Response) => {
+  app.post("/api/theme-settings", requireAuth, async (req: Request, res: Response) => {
     try {
       const parsed = insertThemeSettingsSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -775,7 +775,7 @@ export async function registerRoutes(
   });
 
   // Test telegram connection
-  app.post("/api/telegram-settings/test", async (req: Request, res: Response) => {
+  app.post("/api/telegram-settings/test", requireAuth, async (req: Request, res: Response) => {
     try {
       const parsed = insertTelegramSettingsSchema.safeParse(req.body);
       if (!parsed.success) {

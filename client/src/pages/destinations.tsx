@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { RtmpEndpoint, StreamingState, InsertRtmpEndpoint, Video } from "@shared/schema";
 import { RtmpPanel } from "@/components/rtmp-panel";
 import { StatusDashboard } from "@/components/status-dashboard";
-import { Server, Wifi } from "lucide-react";
+import { Server, Wifi, Radio } from "lucide-react";
 
 export default function Destinations() {
   const { toast } = useToast();
@@ -23,6 +23,7 @@ export default function Destinations() {
   });
 
   const enabledEndpoints = endpoints.filter((e) => e.enabled);
+  const disabledEndpoints = endpoints.filter((e) => !e.enabled);
 
   const createEndpointMutation = useMutation({
     mutationFn: async (endpoint: InsertRtmpEndpoint) =>
@@ -55,9 +56,25 @@ export default function Destinations() {
       <div className="console-pane rounded-lg p-4 sm:p-5">
         <div className="flex items-center gap-2 pb-3 mb-4 border-b border-primary/10">
           <Server className="w-3.5 h-3.5 text-primary" />
-          <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">RTMP Endpoints</span>
+          <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">Broadcast Channels</span>
           <div className="flex-1 h-px bg-gradient-to-r from-primary/10 to-transparent" />
-          <span className="text-[9px] font-mono text-muted-foreground/40">{enabledEndpoints.length} active</span>
+          {endpoints.length > 0 && (
+            <div className="flex items-center gap-2">
+              {disabledEndpoints.length > 0 && (
+                <span className="text-[9px] font-mono text-muted-foreground/40">
+                  {disabledEndpoints.length} excluded
+                </span>
+              )}
+              <span className={`inline-flex items-center gap-1 text-[9px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded border ${
+                enabledEndpoints.length > 0
+                  ? "border-green-500/30 bg-green-500/8 text-green-400"
+                  : "border-muted-foreground/20 text-muted-foreground/40"
+              }`}>
+                <Radio className="w-2.5 h-2.5" />
+                {enabledEndpoints.length} / {endpoints.length} selected
+              </span>
+            </div>
+          )}
         </div>
         <RtmpPanel
           endpoints={endpoints}

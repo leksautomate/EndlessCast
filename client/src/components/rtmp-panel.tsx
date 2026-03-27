@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings, Plus, Trash2, Eye, EyeOff, Pencil, Upload, X, ImageIcon, Monitor, Film } from "lucide-react";
+import { Settings, Plus, Trash2, Eye, EyeOff, Pencil, Upload, X, ImageIcon, Monitor, Film, Radio, BanIcon } from "lucide-react";
 import { SiYoutube, SiFacebook } from "react-icons/si";
 import type { RtmpEndpoint, RtmpPlatform, InsertRtmpEndpoint, OutputProfile, Video } from "@shared/schema";
 import { platformInfo, rtmpPlatforms, outputProfiles, outputProfileInfo } from "@shared/schema";
@@ -566,14 +566,16 @@ export function RtmpPanel({
           endpoints.map((endpoint) => (
             <div
               key={endpoint.id}
-              className={`border rounded-lg transition-all overflow-hidden ${
-                endpoint.enabled ? "bg-card" : "bg-muted/30 opacity-70"
+              className={`rounded-lg border-l-4 border border-l-transparent transition-all overflow-hidden ${
+                endpoint.enabled
+                  ? "border-l-green-500 bg-card"
+                  : "border-l-muted-foreground/20 bg-muted/20"
               }`}
               data-testid={`endpoint-card-${endpoint.id}`}
             >
               {/* YouTube thumbnail preview */}
               {endpoint.platform === "youtube" && endpoint.thumbnailPath && (
-                <div className="relative">
+                <div className={`relative ${!endpoint.enabled ? "opacity-40" : ""}`}>
                   <img
                     src={endpoint.thumbnailPath}
                     alt="Stream thumbnail"
@@ -592,7 +594,7 @@ export function RtmpPanel({
                 </div>
               )}
 
-              <div className="p-4">
+              <div className={`p-4 ${!endpoint.enabled ? "opacity-60" : ""}`}>
                 <div className="flex items-start gap-3">
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -602,15 +604,21 @@ export function RtmpPanel({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-medium text-sm" data-testid={`text-endpoint-name-${endpoint.id}`}>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm flex-1 min-w-0 truncate" data-testid={`text-endpoint-name-${endpoint.id}`}>
                         {endpoint.name}
                       </p>
-                      <Switch
-                        checked={endpoint.enabled}
-                        onCheckedChange={(enabled) => onUpdate({ ...endpoint, enabled })}
-                        data-testid={`switch-endpoint-${endpoint.id}`}
-                      />
+                      {endpoint.enabled ? (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded border border-green-500/40 bg-green-500/10 text-green-400 flex-shrink-0">
+                          <Radio className="w-2.5 h-2.5" />
+                          Live
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded border border-muted-foreground/20 bg-muted/30 text-muted-foreground/50 flex-shrink-0">
+                          <BanIcon className="w-2.5 h-2.5" />
+                          Excluded
+                        </span>
+                      )}
                     </div>
 
                     {/* YouTube title (when no thumbnail) */}
@@ -700,6 +708,30 @@ export function RtmpPanel({
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Broadcast inclusion toggle — clearly labeled row at the bottom */}
+              <div
+                className={`flex items-center justify-between px-4 py-2.5 border-t cursor-pointer transition-colors select-none ${
+                  endpoint.enabled
+                    ? "border-green-500/15 bg-green-500/5 hover:bg-green-500/10"
+                    : "border-muted-foreground/10 bg-muted/10 hover:bg-muted/20"
+                }`}
+                onClick={() => onUpdate({ ...endpoint, enabled: !endpoint.enabled })}
+                data-testid={`button-toggle-broadcast-${endpoint.id}`}
+              >
+                <div className="flex items-center gap-2">
+                  <Radio className={`w-3 h-3 ${endpoint.enabled ? "text-green-400" : "text-muted-foreground/40"}`} />
+                  <span className={`text-[10px] font-mono tracking-widest uppercase ${endpoint.enabled ? "text-green-400" : "text-muted-foreground/40"}`}>
+                    {endpoint.enabled ? "Included in broadcast — click to exclude" : "Not broadcasting — click to include"}
+                  </span>
+                </div>
+                <Switch
+                  checked={endpoint.enabled}
+                  onCheckedChange={(enabled) => onUpdate({ ...endpoint, enabled })}
+                  data-testid={`switch-endpoint-${endpoint.id}`}
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
             </div>
           ))

@@ -35,11 +35,11 @@ export const outputProfiles = [
 
 export type OutputProfile = typeof outputProfiles[number];
 
-export const outputProfileInfo: Record<OutputProfile, { label: string; width: number; height: number; maxrate: string; bufsize: string; badge: string }> = {
-  landscape_1080p: { label: "Landscape 1080p (16:9)", width: 1920, height: 1080, maxrate: "6000k", bufsize: "12000k", badge: "16:9 1080p" },
-  landscape_720p:  { label: "Landscape 720p (16:9)",  width: 1280, height: 720,  maxrate: "3000k", bufsize: "6000k",  badge: "16:9 720p"  },
-  portrait_1080p:  { label: "Portrait 1080p / Shorts (9:16)", width: 1080, height: 1920, maxrate: "6000k", bufsize: "12000k", badge: "9:16 Shorts" },
-  square_1080p:    { label: "Square 1080p (1:1)",     width: 1080, height: 1080, maxrate: "4500k", bufsize: "9000k",  badge: "1:1 Square" },
+export const outputProfileInfo: Record<OutputProfile, { label: string; width: number; height: number; bitrate: string; maxrate: string; bufsize: string; badge: string }> = {
+  landscape_1080p: { label: "Landscape 1080p (16:9)", width: 1920, height: 1080, bitrate: "4500k", maxrate: "6000k", bufsize: "9000k",  badge: "16:9 1080p" },
+  landscape_720p:  { label: "Landscape 720p (16:9)",  width: 1280, height: 720,  bitrate: "2500k", maxrate: "3500k", bufsize: "5000k",  badge: "16:9 720p"  },
+  portrait_1080p:  { label: "Portrait 1080p / Shorts (9:16)", width: 1080, height: 1920, bitrate: "4500k", maxrate: "6000k", bufsize: "9000k",  badge: "9:16 Shorts" },
+  square_1080p:    { label: "Square 1080p (1:1)",     width: 1080, height: 1080, bitrate: "3500k", maxrate: "4500k", bufsize: "7000k",  badge: "1:1 Square" },
 };
 
 // RTMP endpoint schema

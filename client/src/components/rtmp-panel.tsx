@@ -259,9 +259,12 @@ function EditEndpointDialog({
           {isYouTube && (
             <>
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                <p className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
                   <SiYoutube className="w-4 h-4" style={{ color: platformInfo.youtube.color }} />
                   YouTube Stream Metadata
+                </p>
+                <p className="text-[10px] font-mono text-muted-foreground/50 mb-3">
+                  For reference only — set your live stream title and description in YouTube Studio before going live.
                 </p>
 
                 <div className="space-y-4">
@@ -499,7 +502,10 @@ export function RtmpPanel({
                   <div className="border-t pt-3 space-y-3">
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <SiYoutube className="w-3 h-3" style={{ color: platformInfo.youtube.color }} />
-                      YouTube metadata (optional — add after creating)
+                      YouTube metadata (for reference only)
+                    </p>
+                    <p className="text-[10px] font-mono text-muted-foreground/50">
+                      Set your live stream title and description in YouTube Studio before going live.
                     </p>
                     <div className="space-y-2">
                       <Label htmlFor="streamTitle">Stream Title</Label>

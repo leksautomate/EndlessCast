@@ -29,6 +29,7 @@ class StreamingService {
   private processes: Map<string, StreamProcess> = new Map();
   private reconnectStates: Map<string, ReconnectState> = new Map();
   private monitorInterval: NodeJS.Timeout | null = null;
+  private isStopping = false;
 
   async startStreaming(durationSeconds?: number): Promise<void> {
     const state = await storage.getStreamingState();
@@ -40,28 +41,43 @@ class StreamingService {
       throw new Error("No RTMP endpoints configured");
     }
 
-    // Validate that every enabled endpoint has a resolvable video:
-    // each endpoint uses its own videoId if set, otherwise falls back to the global selectedVideoId.
     const endpointVideoSources: Map<string, string> = new Map();
+    const skippedEndpoints: string[] = [];
+
     for (const endpoint of enabledEndpoints) {
       const resolvedVideoId = endpoint.videoId ?? state.selectedVideoId;
       if (!resolvedVideoId) {
-        throw new Error(
-          `Endpoint "${endpoint.name}" has no video assigned and no global video is selected.`
-        );
+        skippedEndpoints.push(`"${endpoint.name}" — no video assigned`);
+        continue;
       }
       const video = await storage.getVideo(resolvedVideoId);
       if (!video) {
-        throw new Error(
-          `Video for endpoint "${endpoint.name}" not found. Please re-assign a video.`
-        );
+        skippedEndpoints.push(`"${endpoint.name}" — video not found`);
+        continue;
       }
       endpointVideoSources.set(endpoint.id, path.join(process.cwd(), "uploads", video.filename));
     }
 
+    const launchableEndpoints = enabledEndpoints.filter(e => endpointVideoSources.has(e.id));
+
+    if (launchableEndpoints.length === 0) {
+      throw new Error(
+        "No endpoints could start. " +
+        (skippedEndpoints.length > 0
+          ? "Issues: " + skippedEndpoints.join("; ")
+          : "No video selected.")
+      );
+    }
+
+    if (skippedEndpoints.length > 0) {
+      for (const msg of skippedEndpoints) {
+        console.warn(`[skip] ${msg}`);
+        await storage.addLog({ level: "warn", message: `Skipped endpoint: ${msg}` });
+      }
+    }
+
     const limit = durationSeconds || 42900;
 
-    // Resolve extra camera video path if configured and enabled
     let extraCameraPath: string | null = null;
     const extraCamera = state.extraCamera?.enabled ? state.extraCamera : null;
     if (extraCamera) {
@@ -77,7 +93,7 @@ class StreamingService {
     await storage.setStreamingState({
       isStreaming: true,
       startedAt: new Date().toISOString(),
-      endpointStatuses: enabledEndpoints.map(e => ({
+      endpointStatuses: launchableEndpoints.map(e => ({
         endpointId: e.id,
         status: "connecting" as const,
         reconnectCount: 0,
@@ -86,18 +102,45 @@ class StreamingService {
 
     await storage.addLog({
       level: "info",
-      message: `Stream started → ${enabledEndpoints.length} endpoint(s)`,
+      message: `Stream started → ${launchableEndpoints.length} endpoint(s)` +
+        (skippedEndpoints.length > 0 ? ` (${skippedEndpoints.length} skipped)` : ""),
     });
 
-    for (const endpoint of enabledEndpoints) {
+    this.isStopping = false;
+
+    for (let i = 0; i < launchableEndpoints.length; i++) {
+      if (this.isStopping) {
+        console.log("[startup] Stop requested during launch — aborting remaining endpoints");
+        break;
+      }
+
+      const endpoint = launchableEndpoints[i];
       const videoSource = endpointVideoSources.get(endpoint.id)!;
-      await this.startEndpointStream(
-        videoSource, endpoint, limit, false,
-        extraCameraPath, extraCamera,
-      );
+
+      try {
+        await this.startEndpointStream(
+          videoSource, endpoint, limit, false,
+          extraCameraPath, extraCamera,
+        );
+      } catch (err: any) {
+        console.error(`[${endpoint.name}] Failed to launch:`, err.message);
+        await storage.addLog({
+          level: "error",
+          message: `Failed to launch "${endpoint.name}": ${err.message}`,
+          endpoint: endpoint.name,
+        });
+        await storage.updateEndpointStatus(endpoint.id, {
+          status: "error",
+          errorMessage: err.message,
+        });
+      }
+
+      if (i < launchableEndpoints.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
     }
 
-    await telegramService.notifyStreamStart(enabledEndpoints.map(e => e.name));
+    await telegramService.notifyStreamStart(launchableEndpoints.map(e => e.name));
     this.startMonitoring();
   }
 
@@ -250,6 +293,11 @@ class StreamingService {
       console.log(`[${endpoint.name}] Exited with code ${code}`);
       this.processes.delete(endpoint.id);
 
+      if (this.isStopping) {
+        await storage.updateEndpointStatus(endpoint.id, { status: "stopped" });
+        return;
+      }
+
       const state = await storage.getStreamingState();
       if (!state.isStreaming) {
         await storage.updateEndpointStatus(endpoint.id, { status: "stopped" });
@@ -258,7 +306,40 @@ class StreamingService {
 
       const isCleanExit = code === 0 || code === 255;
       if (isCleanExit) {
-        await storage.updateEndpointStatus(endpoint.id, { status: "stopped" });
+        const freshEndpoint = await storage.getRtmpEndpoint(endpoint.id);
+        if (!freshEndpoint || !freshEndpoint.enabled) {
+          console.log(`[${endpoint.name}] Endpoint removed or disabled — not restarting`);
+          await storage.updateEndpointStatus(endpoint.id, { status: "stopped" });
+          return;
+        }
+
+        const resolvedVideoId = freshEndpoint.videoId ?? state.selectedVideoId;
+        if (!resolvedVideoId) {
+          console.warn(`[${endpoint.name}] No video assigned — not restarting`);
+          await storage.updateEndpointStatus(endpoint.id, { status: "error", errorMessage: "No video assigned" });
+          return;
+        }
+        const video = await storage.getVideo(resolvedVideoId);
+        if (!video) {
+          console.warn(`[${endpoint.name}] Video not found — not restarting`);
+          await storage.updateEndpointStatus(endpoint.id, { status: "error", errorMessage: "Video not found" });
+          return;
+        }
+        const freshVideoSource = path.join(process.cwd(), "uploads", video.filename);
+
+        console.log(`[${freshEndpoint.name}] Clean exit — restarting for continuous streaming`);
+        await storage.addLog({
+          level: "info",
+          message: `"${freshEndpoint.name}" cycle complete — restarting automatically`,
+          endpoint: freshEndpoint.name,
+        });
+        const rs = this.reconnectStates.get(endpoint.id);
+        if (rs?.timer) clearTimeout(rs.timer);
+        this.reconnectStates.delete(endpoint.id);
+        await this.startEndpointStream(
+          freshVideoSource, freshEndpoint, durationSeconds, false,
+          extraCameraPath, extraCamera,
+        );
         return;
       }
 
@@ -381,6 +462,10 @@ class StreamingService {
 
     const capturedRs = rs;
     capturedRs.timer = setTimeout(async () => {
+      if (this.isStopping) {
+        this.reconnectStates.delete(endpoint.id);
+        return;
+      }
       const state = await storage.getStreamingState();
       if (!state.isStreaming) {
         this.reconnectStates.delete(endpoint.id);
@@ -401,6 +486,8 @@ class StreamingService {
   }
 
   async stopStreaming(): Promise<void> {
+    this.isStopping = true;
+
     for (const rs of Array.from(this.reconnectStates.values())) {
       if (rs.timer) clearTimeout(rs.timer);
     }

@@ -257,103 +257,131 @@ function EditEndpointDialog({
           )}
 
           {isYouTube && (
-            <>
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
-                  <SiYoutube className="w-4 h-4" style={{ color: platformInfo.youtube.color }} />
-                  YouTube Stream Metadata
-                </p>
-                <p className="text-[10px]  text-muted-foreground/50 mb-3">
-                  For reference only — set your live stream title and description in YouTube Studio before going live.
-                </p>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-streamTitle">Stream Title</Label>
-                    <Input
-                      id="edit-streamTitle"
-                      value={form.streamTitle || ""}
-                      onChange={(e) => setForm({ ...form, streamTitle: e.target.value })}
-                      placeholder="Enter stream title..."
-                      data-testid="input-edit-stream-title"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-streamDescription">Description</Label>
-                    <Textarea
-                      id="edit-streamDescription"
-                      value={form.streamDescription || ""}
-                      onChange={(e) => setForm({ ...form, streamDescription: e.target.value })}
-                      placeholder="Enter stream description..."
-                      rows={3}
-                      data-testid="input-edit-stream-description"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Thumbnail</Label>
-                    {form.thumbnailPath ? (
-                      <div className="relative">
-                        <img
-                          src={form.thumbnailPath}
-                          alt="Stream thumbnail"
-                          className="w-full rounded-lg object-cover aspect-video border"
-                          data-testid="img-stream-thumbnail"
-                        />
-                        <div className="absolute top-2 right-2 flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={thumbnailUploading}
-                            data-testid="button-replace-thumbnail"
-                          >
-                            <Upload className="w-3 h-3 mr-1" />
-                            Replace
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="destructive"
-                            onClick={handleThumbnailRemove}
-                            disabled={thumbnailRemoving}
-                            data-testid="button-remove-thumbnail"
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                        onClick={() => fileInputRef.current?.click()}
-                        data-testid="button-upload-thumbnail"
-                      >
-                        <ImageIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          {thumbnailUploading ? "Uploading..." : "Click to upload thumbnail"}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          JPEG, PNG, WebP up to 10MB
-                        </p>
-                      </div>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/gif,image/webp"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleThumbnailUpload(file);
-                        e.target.value = "";
-                      }}
-                      data-testid="input-thumbnail-file"
-                    />
-                  </div>
-                </div>
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <SiYoutube className="w-4 h-4" style={{ color: platformInfo.youtube.color }} />
+                <p className="text-sm font-semibold">YouTube Metadata</p>
+                <span className="text-[10px] text-muted-foreground/50 bg-muted/40 border border-border/40 px-1.5 py-0.5 rounded ml-auto">
+                  auto-syncs on stream start
+                </span>
               </div>
-            </>
+
+              {/* Broadcast ID */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-broadcastId">Broadcast ID</Label>
+                <Input
+                  id="edit-broadcastId"
+                  value={form.youtubeBroadcastId || ""}
+                  onChange={(e) => setForm({ ...form, youtubeBroadcastId: e.target.value })}
+                  placeholder="e.g. abc123def456"
+                  data-testid="input-edit-broadcast-id"
+                />
+                <p className="text-xs text-muted-foreground/50">
+                  From YouTube Studio — the video ID in your stream URL: youtube.com/watch?v=<strong>ID</strong>
+                </p>
+              </div>
+
+              {/* Title */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-streamTitle">Title</Label>
+                <Input
+                  id="edit-streamTitle"
+                  value={form.streamTitle || ""}
+                  onChange={(e) => setForm({ ...form, streamTitle: e.target.value })}
+                  placeholder="Stream title..."
+                  data-testid="input-edit-stream-title"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-streamDescription">Description</Label>
+                <Textarea
+                  id="edit-streamDescription"
+                  value={form.streamDescription || ""}
+                  onChange={(e) => setForm({ ...form, streamDescription: e.target.value })}
+                  placeholder="Stream description..."
+                  rows={3}
+                  data-testid="input-edit-stream-description"
+                />
+              </div>
+
+              {/* Tags */}
+              <div className="space-y-2">
+                <Label htmlFor="edit-streamTags">Tags</Label>
+                <Input
+                  id="edit-streamTags"
+                  value={(form.streamTags ?? []).join(", ")}
+                  onChange={(e) => {
+                    const tags = e.target.value.split(",").map(t => t.trim()).filter(Boolean);
+                    setForm({ ...form, streamTags: tags });
+                  }}
+                  placeholder="gaming, news, livestream..."
+                  data-testid="input-edit-stream-tags"
+                />
+                <p className="text-xs text-muted-foreground/50">Comma-separated tags</p>
+              </div>
+
+              {/* Thumbnail */}
+              <div className="space-y-2">
+                <Label>Thumbnail</Label>
+                {form.thumbnailPath ? (
+                  <div className="relative">
+                    <img
+                      src={form.thumbnailPath}
+                      alt="Stream thumbnail"
+                      className="w-full rounded-lg object-cover aspect-video border"
+                      data-testid="img-stream-thumbnail"
+                    />
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={thumbnailUploading}
+                        data-testid="button-replace-thumbnail"
+                      >
+                        <Upload className="w-3 h-3 mr-1" />
+                        Replace
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        onClick={handleThumbnailRemove}
+                        disabled={thumbnailRemoving}
+                        data-testid="button-remove-thumbnail"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                    data-testid="button-upload-thumbnail"
+                  >
+                    <ImageIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      {thumbnailUploading ? "Uploading..." : "Click to upload thumbnail"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">JPEG, PNG, WebP up to 10MB</p>
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleThumbnailUpload(file);
+                    e.target.value = "";
+                  }}
+                  data-testid="input-thumbnail-file"
+                />
+              </div>
+            </div>
           )}
 
           <Button

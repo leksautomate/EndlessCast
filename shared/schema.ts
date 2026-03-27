@@ -57,7 +57,9 @@ export const rtmpEndpointSchema = z.object({
   // YouTube-specific stream metadata
   streamTitle: z.string().optional(),
   streamDescription: z.string().optional(),
+  streamTags: z.array(z.string()).optional(),
   thumbnailPath: z.string().optional(),
+  youtubeBroadcastId: z.string().optional(),
 });
 
 export type RtmpEndpoint = z.infer<typeof rtmpEndpointSchema>;
@@ -344,6 +346,18 @@ export interface ThemePreset {
   mutedHsl: string;
   inputHsl: string;
 }
+
+// YouTube API settings schema
+export const youtubeApiSettingsSchema = z.object({
+  clientId: z.string(),
+  clientSecret: z.string(),
+  refreshToken: z.string().optional(),
+  accessToken: z.string().optional(),
+  accessTokenExpiresAt: z.number().optional(),
+  connectedEmail: z.string().optional(),
+});
+
+export type YouTubeApiSettings = z.infer<typeof youtubeApiSettingsSchema>;
 
 export const themePresets: Record<ThemeColor, ThemePreset> = {
   ocean: {

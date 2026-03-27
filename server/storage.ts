@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
-import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, EmailSettings, InsertEmailSettings, ThemeSettings, InsertThemeSettings, TelegramSettings, InsertTelegramSettings, ExtraCamera, LogEntry, LogLevel } from "@shared/schema";
+import type { Video, RtmpEndpoint, StreamingState, StorageInfo, InsertRtmpEndpoint, StreamStatus, Playlist, InsertPlaylist, ScheduledStream, InsertScheduledStream, EmailSettings, InsertEmailSettings, ThemeSettings, InsertThemeSettings, TelegramSettings, InsertTelegramSettings, ExtraCamera, LogEntry, LogLevel, YouTubeApiSettings } from "@shared/schema";
 import { MAX_STORAGE_BYTES, MAX_VIDEOS, MAX_LOG_ENTRIES } from "@shared/schema";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -15,6 +15,7 @@ interface StorageData {
   emailSettings: EmailSettings | null;
   themeSettings: ThemeSettings | null;
   telegramSettings: TelegramSettings | null;
+  youtubeApiSettings: YouTubeApiSettings | null;
 }
 
 export interface IStorage {
@@ -66,6 +67,10 @@ export interface IStorage {
   getTelegramSettings(): Promise<TelegramSettings | null>;
   updateTelegramSettings(settings: InsertTelegramSettings): Promise<TelegramSettings>;
 
+  // YouTube API settings operations
+  getYouTubeApiSettings(): Promise<YouTubeApiSettings | null>;
+  updateYouTubeApiSettings(settings: Partial<YouTubeApiSettings>): Promise<YouTubeApiSettings>;
+
   // Storage info
   getStorageInfo(): Promise<StorageInfo>;
 }
@@ -79,6 +84,7 @@ export class MemStorage implements IStorage {
   private emailSettings: EmailSettings | null;
   private themeSettings: ThemeSettings | null;
   private telegramSettings: TelegramSettings | null;
+  private youtubeApiSettings: YouTubeApiSettings | null;
   private logs: LogEntry[] = [];
   private saveTimeout: NodeJS.Timeout | null = null;
 
@@ -90,6 +96,7 @@ export class MemStorage implements IStorage {
     this.emailSettings = null;
     this.themeSettings = null;
     this.telegramSettings = null;
+    this.youtubeApiSettings = null;
     this.logs = [];
     this.streamingState = {
       isStreaming: false,
@@ -129,7 +136,8 @@ export class MemStorage implements IStorage {
         }
         this.themeSettings = data.themeSettings || null;
         this.telegramSettings = data.telegramSettings || null;
-        
+        this.youtubeApiSettings = data.youtubeApiSettings || null;
+
         console.log(`✓ Loaded ${this.videos.size} videos, ${this.rtmpEndpoints.size} RTMP endpoints from disk`);
       } else {
         console.log("✓ No existing data file, starting fresh");
@@ -158,6 +166,7 @@ export class MemStorage implements IStorage {
         emailSettings: this.emailSettings,
         themeSettings: this.themeSettings,
         telegramSettings: this.telegramSettings,
+        youtubeApiSettings: this.youtubeApiSettings,
       };
       
       const tempFile = DATA_FILE + ".tmp";
@@ -381,6 +390,17 @@ export class MemStorage implements IStorage {
     this.telegramSettings = settings;
     this.scheduleSave();
     return this.telegramSettings;
+  }
+
+  // YouTube API settings operations
+  async getYouTubeApiSettings(): Promise<YouTubeApiSettings | null> {
+    return this.youtubeApiSettings;
+  }
+
+  async updateYouTubeApiSettings(settings: Partial<YouTubeApiSettings>): Promise<YouTubeApiSettings> {
+    this.youtubeApiSettings = { ...(this.youtubeApiSettings ?? { clientId: "", clientSecret: "" }), ...settings };
+    this.scheduleSave();
+    return this.youtubeApiSettings;
   }
 
   // Storage info

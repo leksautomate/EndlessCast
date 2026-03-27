@@ -187,6 +187,17 @@ sudo systemctl restart endlesscast
 ./status.sh
 ```
 
+> **Ctrl+C was killing my server** — this was a bug in the old generated `start.sh`.
+> The fix ships `start.sh`, `stop.sh`, `status.sh`, and `restart.sh` directly in the repo.
+> Run `git pull origin main` and you'll get the corrected scripts immediately.
+>
+> ```bash
+> cd ~/EndlessCast
+> git pull origin main
+> chmod +x start.sh stop.sh status.sh restart.sh
+> ./start.sh     # terminal returns immediately — Ctrl+C won't stop the server
+> ```
+
 ---
 
 ## Firewall Configuration
@@ -356,6 +367,57 @@ This is expected — FFmpeg is doing real-time video encoding. Solutions:
 - Use a VPS with more CPU cores (4+ recommended for multi-platform)
 - Switch to the **Landscape 720p** output profile to halve CPU per stream
 - Reduce the number of simultaneous endpoints
+
+---
+
+## Removing EndlessCast
+
+Follow these steps to completely remove EndlessCast from your server. Nothing is left behind.
+
+### 1. Stop the server
+
+```bash
+cd ~/EndlessCast
+
+./stop.sh                          # if using start.sh / nohup
+
+# or if using pm2:
+pm2 stop endlesscast
+pm2 delete endlesscast
+
+# or if using systemd:
+sudo systemctl stop endlesscast
+sudo systemctl disable endlesscast
+```
+
+### 2. Remove the systemd service (if installed)
+
+```bash
+sudo rm -f /etc/systemd/system/endlesscast.service
+sudo systemctl daemon-reload
+```
+
+### 3. Delete all EndlessCast files
+
+This deletes the entire install directory — code, videos, config, logs, everything:
+
+```bash
+rm -rf ~/EndlessCast
+```
+
+> **Warning:** This permanently deletes all uploaded videos and your stream configuration.
+> Back up `~/EndlessCast/data/storage.json` and `~/EndlessCast/uploads/` first if you want to keep them.
+
+### 4. Remove pm2 (optional)
+
+Only do this if you installed pm2 just for EndlessCast and don't use it for anything else:
+
+```bash
+pm2 delete all
+npm uninstall -g pm2
+```
+
+That's it — your server is clean.
 
 ---
 

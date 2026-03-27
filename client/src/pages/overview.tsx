@@ -13,11 +13,10 @@ import {
   Clock,
   Database,
   Zap,
-  Terminal,
-  ChevronRight,
   Server,
   Wifi,
   Camera,
+  Signal,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -29,9 +28,7 @@ function formatUptime(startedAt: string | null | undefined): string {
   const hours = Math.floor(diff / 3600);
   const minutes = Math.floor((diff % 3600) / 60);
   const seconds = diff % 60;
-  return `${hours.toString().padStart(2, "0")}:${minutes
-    .toString()
-    .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
 function formatBytes(bytes: number): string {
@@ -42,21 +39,28 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
+function SectionHeader({ icon: Icon, label, accent }: { icon: React.ElementType; label: string; accent?: boolean }) {
+  return (
+    <div className={`flex items-center gap-2 pb-3 mb-4 border-b ${accent ? "border-b-green-500/20" : "border-b-primary/10"}`}>
+      <Icon className={`w-3.5 h-3.5 ${accent ? "text-green-500" : "text-primary"}`} />
+      <span className={`text-[10px] font-mono font-bold tracking-[0.2em] uppercase ${accent ? "text-green-500" : "text-primary/80"}`}>
+        {label}
+      </span>
+      <div className={`flex-1 h-px ${accent ? "bg-gradient-to-r from-green-500/20 to-transparent" : "bg-gradient-to-r from-primary/10 to-transparent"}`} />
+    </div>
+  );
+}
+
 export default function Overview() {
   const { toast } = useToast();
   const [uptime, setUptime] = useState("00:00:00");
 
   const { data: videos = [] } = useQuery<Video[]>({ queryKey: ["/api/videos"] });
-
-  const { data: endpoints = [] } = useQuery<RtmpEndpoint[]>({
-    queryKey: ["/api/rtmp-endpoints"],
-  });
-
+  const { data: endpoints = [] } = useQuery<RtmpEndpoint[]>({ queryKey: ["/api/rtmp-endpoints"] });
   const { data: streamingState } = useQuery<StreamingState>({
     queryKey: ["/api/streaming/state"],
     refetchInterval: 2000,
   });
-
   const { data: storageInfo } = useQuery<StorageInfo>({ queryKey: ["/api/storage"] });
 
   useEffect(() => {
@@ -68,8 +72,9 @@ export default function Overview() {
 
   const selectedVideo = videos.find((v) => v.id === streamingState?.selectedVideoId);
   const enabledEndpoints = endpoints.filter((e) => e.enabled);
-  const liveEndpoints =
-    streamingState?.endpointStatuses?.filter((s) => s.status === "live").length || 0;
+  const liveEndpoints = streamingState?.endpointStatuses?.filter((s) => s.status === "live").length || 0;
+  const isLive = streamingState?.isStreaming || false;
+  const storagePct = storageInfo ? Math.round((storageInfo.used / storageInfo.limit) * 100) : 0;
 
   const startStreamMutation = useMutation({
     mutationFn: async (durationSeconds?: number) =>
@@ -92,120 +97,147 @@ export default function Overview() {
   });
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
-      <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground font-mono">
-        <Terminal className="w-3 h-3 text-primary" />
-        <span className="text-primary">root@endlesscast</span>
-        <ChevronRight className="w-3 h-3" />
-        <span className="text-foreground">overview</span>
-        <span className="animate-pulse">_</span>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <Card className="border-primary/20 bg-card/50 backdrop-blur">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Status</p>
-                <p
-                  className={`text-base sm:text-lg font-bold font-mono truncate ${
-                    streamingState?.isStreaming ? "text-green-500" : "text-muted-foreground"
-                  }`}
-                  data-testid="text-stream-status"
-                >
-                  {streamingState?.isStreaming ? "LIVE" : "OFF"}
-                </p>
+    <div className="min-h-full">
+      {/* ── LIVE broadcast banner ─────────────────────────────── */}
+      {isLive && (
+        <div className="border-b border-green-500/20 bg-green-500/5 live-border-pulse px-4 sm:px-6 py-4 slide-down">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-green-500 animate-pulse" />
+                <span className="text-[10px] font-mono text-green-500/70 uppercase tracking-[0.3em]">Broadcasting</span>
               </div>
-              <div
-                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  streamingState?.isStreaming
-                    ? "bg-green-500/20 border border-green-500/30"
-                    : "bg-muted/20 border border-muted/30"
-                }`}
-              >
-                <Activity
-                  className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                    streamingState?.isStreaming ? "text-green-500 animate-pulse" : "text-muted-foreground"
-                  }`}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-primary/20 bg-card/50 backdrop-blur">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Uptime</p>
-                <p className="text-base sm:text-lg font-bold font-mono text-primary truncate" data-testid="text-uptime">
+              <div className="h-6 w-px bg-green-500/20" />
+              <div>
+                <span className="text-[9px] font-mono text-green-500/50 uppercase tracking-widest block leading-none mb-0.5">Uptime</span>
+                <span className="font-display text-3xl text-green-400 leading-none glow-sm" data-testid="text-uptime">
                   {uptime}
-                </p>
-              </div>
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/30 flex-shrink-0">
-                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card className="border-primary/20 bg-card/50 backdrop-blur">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Endpoints</p>
-                <p className="text-base sm:text-lg font-bold font-mono text-foreground" data-testid="text-endpoints-count">
-                  <span className="text-green-500">{liveEndpoints}</span>
-                  <span className="text-muted-foreground text-sm">/{enabledEndpoints.length}</span>
-                </p>
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <span className="text-[9px] font-mono text-green-500/50 uppercase tracking-widest block leading-none mb-0.5">Channels</span>
+                <span className="font-display text-3xl text-green-400 leading-none" data-testid="text-live-channels">
+                  {liveEndpoints}/{enabledEndpoints.length}
+                </span>
               </div>
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/30 flex-shrink-0">
-                <Radio className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              {selectedVideo && (
+                <>
+                  <div className="h-6 w-px bg-green-500/20 hidden sm:block" />
+                  <div className="hidden sm:block text-center">
+                    <span className="text-[9px] font-mono text-green-500/50 uppercase tracking-widest block leading-none mb-0.5">Now Playing</span>
+                    <span className="text-xs font-mono text-green-300 max-w-[200px] truncate block leading-none" data-testid="text-now-playing">
+                      {selectedVideo.originalName}
+                    </span>
+                  </div>
+                </>
+              )}
+              {/* Signal bars */}
+              <div className="flex items-end gap-0.5 h-6">
+                {[1,2,3,4,5].map((i) => (
+                  <span
+                    key={i}
+                    className="signal-bar w-1.5"
+                    style={{
+                      height: `${i * 20}%`,
+                      opacity: i <= liveEndpoints ? 1 : 0.2,
+                      animationDelay: `${i * 0.15}s`,
+                    }}
+                  />
+                ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      )}
 
-        <Card className="border-primary/20 bg-card/50 backdrop-blur">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Storage</p>
-                <p className="text-base sm:text-lg font-bold font-mono text-foreground" data-testid="text-storage-percent">
-                  {storageInfo ? `${((storageInfo.used / storageInfo.limit) * 100).toFixed(0)}%` : "0%"}
-                </p>
+      {/* ── Main content ─────────────────────────────────────────── */}
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
+
+        {/* ── Stats row ────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Status */}
+          <div className={`console-pane rounded-lg p-3 sm:p-4 ${isLive ? "border-l-green-500/70 border-green-500/15" : ""}`}>
+            <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">Status</p>
+            <div className="flex items-end justify-between gap-2">
+              <span
+                className={`font-display text-4xl leading-none ${isLive ? "text-green-400" : "text-muted-foreground/40"}`}
+                data-testid="text-stream-status"
+              >
+                {isLive ? "LIVE" : "OFF"}
+              </span>
+              <div className={`w-8 h-8 rounded flex items-center justify-center flex-shrink-0 ${
+                isLive ? "bg-green-500/15 border border-green-500/30" : "bg-muted/20 border border-muted/20"
+              }`}>
+                <Activity className={`w-4 h-4 ${isLive ? "text-green-500 animate-pulse" : "text-muted-foreground/30"}`} />
               </div>
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/30 flex-shrink-0">
-                <Database className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            </div>
+          </div>
+
+          {/* Uptime (only when not live — live shows in banner) */}
+          <div className="console-pane rounded-lg p-3 sm:p-4">
+            <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">Uptime</p>
+            <div className="flex items-end justify-between gap-2">
+              <span className="font-display text-4xl text-primary/80 leading-none glow-sm" data-testid="text-uptime-sm">
+                {isLive ? uptime : "--:--"}
+              </span>
+              <div className="w-8 h-8 rounded flex items-center justify-center bg-primary/8 border border-primary/20 flex-shrink-0">
+                <Clock className="w-4 h-4 text-primary/60" />
+              </div>
+            </div>
+          </div>
+
+          {/* Endpoints */}
+          <div className="console-pane rounded-lg p-3 sm:p-4">
+            <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">Endpoints</p>
+            <div className="flex items-end justify-between gap-2">
+              <div>
+                <span className="font-display text-4xl leading-none" data-testid="text-endpoints-count">
+                  <span className={isLive ? "text-green-400" : "text-foreground/60"}>{liveEndpoints}</span>
+                  <span className="text-muted-foreground/30 text-2xl">/{enabledEndpoints.length}</span>
+                </span>
+              </div>
+              <div className="w-8 h-8 rounded flex items-center justify-center bg-primary/8 border border-primary/20 flex-shrink-0">
+                <Radio className="w-4 h-4 text-primary/60" />
+              </div>
+            </div>
+          </div>
+
+          {/* Storage */}
+          <div className="console-pane rounded-lg p-3 sm:p-4">
+            <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">Storage</p>
+            <div className="flex items-end justify-between gap-2">
+              <span
+                className={`font-display text-4xl leading-none ${storagePct > 90 ? "text-destructive" : storagePct > 70 ? "text-yellow-500" : "text-foreground/70"}`}
+                data-testid="text-storage-percent"
+              >
+                {storagePct}%
+              </span>
+              <div className="w-8 h-8 rounded flex items-center justify-center bg-primary/8 border border-primary/20 flex-shrink-0">
+                <Database className="w-4 h-4 text-primary/60" />
               </div>
             </div>
             {storageInfo && (
               <div className="mt-2">
-                <div className="h-1 bg-muted/30 rounded-full overflow-hidden">
+                <div className="h-0.5 bg-muted/20 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-primary rounded-full transition-all duration-500"
-                    style={{ width: `${(storageInfo.used / storageInfo.limit) * 100}%` }}
+                    className={`h-full rounded-full transition-all duration-700 ${storagePct > 90 ? "bg-destructive" : "bg-primary/60"}`}
+                    style={{ width: `${storagePct}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1 font-mono truncate">
+                <p className="text-[9px] text-muted-foreground/40 mt-1 font-mono">
                   {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.limit)}
                 </p>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
 
-      {/* Stream control */}
-      <Card className="border-primary/30 bg-card/50 backdrop-blur mb-6">
-        <CardHeader className="pb-3 border-b border-primary/10">
-          <CardTitle className="text-sm font-mono flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
-            <span className="text-primary">&gt;</span> STREAM_CONTROL
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
+        {/* ── Stream control ───────────────────────────────────── */}
+        <div className={`console-pane rounded-lg p-4 sm:p-5 ${isLive ? "border-l-green-500/50 border-green-500/15" : ""}`}>
+          <SectionHeader icon={Zap} label="Stream Control" accent={isLive} />
           <StreamingControls
             selectedVideo={selectedVideo}
             streamingState={streamingState}
@@ -215,51 +247,30 @@ export default function Overview() {
             onStart={(durationSeconds) => startStreamMutation.mutate(durationSeconds)}
             onStop={() => stopStreamMutation.mutate()}
           />
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Extra camera (PiP overlay) */}
-      <Card className="border-primary/20 bg-card/50 backdrop-blur mb-6">
-        <CardHeader className="pb-3 border-b border-primary/10">
-          <CardTitle className="text-sm font-mono flex items-center gap-2">
-            <Camera className="w-4 h-4 text-primary" />
-            <span className="text-primary">&gt;</span> EXTRA_CAMERA
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
+        {/* ── Extra camera ─────────────────────────────────────── */}
+        <div className="console-pane rounded-lg p-4 sm:p-5">
+          <SectionHeader icon={Camera} label="Extra Camera (PiP)" />
           <ExtraCameraPanel videos={videos} streamingState={streamingState} />
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Stream health (only when live) */}
-      {streamingState?.isStreaming && (
-        <Card className="border-green-500/30 bg-green-500/5 backdrop-blur mb-6">
-          <CardHeader className="pb-3 border-b border-green-500/20">
-            <CardTitle className="text-sm font-mono flex items-center gap-2">
-              <Activity className="w-4 h-4 text-green-500 animate-pulse" />
-              <span className="text-green-500">&gt;</span> STREAM_HEALTH
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
+        {/* ── Stream health (only when live) ───────────────────── */}
+        {isLive && (
+          <div className="console-pane rounded-lg p-4 sm:p-5 border-l-green-500/50 border-green-500/15 slide-down">
+            <SectionHeader icon={Activity} label="Stream Health" accent />
             <StreamHealthMonitor endpoints={enabledEndpoints} streamingState={streamingState} />
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {/* Endpoint status */}
-      {enabledEndpoints.length > 0 && (
-        <Card className="border-primary/20 bg-card/50 backdrop-blur">
-          <CardHeader className="pb-3 border-b border-primary/10">
-            <CardTitle className="text-sm font-mono flex items-center gap-2">
-              <Wifi className="w-4 h-4 text-primary" />
-              <span className="text-primary">&gt;</span> ENDPOINT_STATUS
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
+        {/* ── Endpoint status ──────────────────────────────────── */}
+        {enabledEndpoints.length > 0 && (
+          <div className="console-pane rounded-lg p-4 sm:p-5">
+            <SectionHeader icon={Wifi} label="Endpoint Status" />
             <StatusDashboard endpoints={enabledEndpoints} streamingState={streamingState} />
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

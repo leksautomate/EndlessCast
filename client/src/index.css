@@ -567,6 +567,96 @@
   .stat-label {
     @apply text-xs uppercase tracking-wider text-muted-foreground;
   }
+
+  /* VT323 display font — for large status numbers */
+  .font-display {
+    font-family: 'VT323', monospace;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
+
+  /* Dot grid background */
+  .dot-grid {
+    background-image: radial-gradient(circle, hsl(var(--primary) / 0.12) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* Atmospheric grid lines (like graph paper) */
+  .grid-lines {
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Console pane — left 3px accent border */
+  .console-pane {
+    @apply relative border border-primary/15 bg-card/40 backdrop-blur-sm;
+    border-left-width: 3px;
+    border-left-color: hsl(var(--primary) / 0.5);
+  }
+
+  /* LIVE state — glowing border pulse on entire sidebar */
+  .sidebar-live {
+    border-right-color: hsl(var(--primary) / 0.4) !important;
+  }
+
+  /* LED indicator dot */
+  .led {
+    @apply inline-block w-2 h-2 rounded-full;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  .led-green {
+    @apply bg-green-500 text-green-500;
+    animation: led-pulse 1.8s ease-in-out infinite;
+  }
+
+  .led-muted {
+    @apply bg-muted-foreground/30 text-muted-foreground/30;
+  }
+
+  @keyframes led-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px currentColor; }
+    50% { opacity: 0.6; box-shadow: 0 0 12px currentColor, 0 0 20px currentColor; }
+  }
+
+  /* Signal bar animation */
+  .signal-bar {
+    @apply inline-block bg-primary rounded-sm;
+    animation: signal-rise 1.2s ease-in-out infinite alternate;
+  }
+
+  @keyframes signal-rise {
+    0% { opacity: 0.3; }
+    100% { opacity: 1; }
+  }
+
+  /* Top status bar slide in */
+  .slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Live banner pulse border */
+  .live-border-pulse {
+    animation: liveBorderPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes liveBorderPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.0), inset 0 0 0 0 rgba(34, 197, 94, 0.0); }
+    50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.15), inset 0 0 8px rgba(34, 197, 94, 0.05); }
+  }
+
+  /* Nav item active indicator */
+  .nav-active-bar {
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full;
+    box-shadow: 0 0 8px var(--theme-primary-hex);
+  }
 }
 
 /* Global focus styles for accessibility */

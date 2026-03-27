@@ -4,8 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { RtmpEndpoint, StreamingState, InsertRtmpEndpoint, Video } from "@shared/schema";
 import { RtmpPanel } from "@/components/rtmp-panel";
 import { StatusDashboard } from "@/components/status-dashboard";
-import { Terminal, ChevronRight, Server, Wifi } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Server, Wifi } from "lucide-react";
 
 export default function Destinations() {
   const { toast } = useToast();
@@ -51,59 +50,36 @@ export default function Destinations() {
   });
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
-      <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground font-mono">
-        <Terminal className="w-3 h-3 text-primary" />
-        <span className="text-primary">root@endlesscast</span>
-        <ChevronRight className="w-3 h-3" />
-        <span className="text-foreground">destinations</span>
-        <span className="animate-pulse">_</span>
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4">
+      {/* RTMP endpoints */}
+      <div className="console-pane rounded-lg p-4 sm:p-5">
+        <div className="flex items-center gap-2 pb-3 mb-4 border-b border-primary/10">
+          <Server className="w-3.5 h-3.5 text-primary" />
+          <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">RTMP Endpoints</span>
+          <div className="flex-1 h-px bg-gradient-to-r from-primary/10 to-transparent" />
+          <span className="text-[9px] font-mono text-muted-foreground/40">{enabledEndpoints.length} active</span>
+        </div>
+        <RtmpPanel
+          endpoints={endpoints}
+          videos={videos}
+          isLoading={endpointsLoading}
+          onCreate={(endpoint: InsertRtmpEndpoint) => createEndpointMutation.mutate(endpoint)}
+          onUpdate={(endpoint: RtmpEndpoint) => updateEndpointMutation.mutate(endpoint)}
+          onDelete={(id: string) => deleteEndpointMutation.mutate(id)}
+        />
       </div>
 
-      <div className="space-y-4">
-        <Card className="border-primary/20 bg-card/50 backdrop-blur">
-          <CardHeader className="pb-3 border-b border-primary/10">
-            <CardTitle className="text-sm font-mono flex items-center gap-2">
-              <Server className="w-4 h-4 text-primary" />
-              <span className="text-primary">&gt;</span> RTMP_ENDPOINTS
-              <span className="ml-auto text-xs text-muted-foreground">
-                [{enabledEndpoints.length} active]
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <RtmpPanel
-              endpoints={endpoints}
-              videos={videos}
-              isLoading={endpointsLoading}
-              onCreate={(endpoint: InsertRtmpEndpoint) =>
-                createEndpointMutation.mutate(endpoint)
-              }
-              onUpdate={(endpoint: RtmpEndpoint) =>
-                updateEndpointMutation.mutate(endpoint)
-              }
-              onDelete={(id: string) => deleteEndpointMutation.mutate(id)}
-            />
-          </CardContent>
-        </Card>
-
-        {enabledEndpoints.length > 0 && (
-          <Card className="border-primary/20 bg-card/50 backdrop-blur">
-            <CardHeader className="pb-3 border-b border-primary/10">
-              <CardTitle className="text-sm font-mono flex items-center gap-2">
-                <Wifi className="w-4 h-4 text-primary" />
-                <span className="text-primary">&gt;</span> ENDPOINT_STATUS
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <StatusDashboard
-                endpoints={enabledEndpoints}
-                streamingState={streamingState}
-              />
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      {/* Endpoint status */}
+      {enabledEndpoints.length > 0 && (
+        <div className="console-pane rounded-lg p-4 sm:p-5">
+          <div className="flex items-center gap-2 pb-3 mb-4 border-b border-primary/10">
+            <Wifi className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">Endpoint Status</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-primary/10 to-transparent" />
+          </div>
+          <StatusDashboard endpoints={enabledEndpoints} streamingState={streamingState} />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # EndlessCast — start in background (pm2 → nohup fallback)
-# Run this instead of `npm run dev` to keep the server alive when you close the terminal.
+# Runs the compiled production build (dist/index.cjs), NOT tsx.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -13,14 +13,15 @@ GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC
 export PORT=${PORT:-5000}
 export NODE_ENV=production
 
-# ── Check the client build exists ─────────────────────────────────────────────
-if [ ! -d "$SCRIPT_DIR/dist/public" ]; then
-    echo -e "${YELLOW}[!]${NC} Client not built yet. Running npm run build first..."
+# ── Build if needed ───────────────────────────────────────────────────────────
+if [ ! -f "$SCRIPT_DIR/dist/index.cjs" ] || [ ! -d "$SCRIPT_DIR/dist/public" ]; then
+    echo -e "${YELLOW}[!]${NC} Production build not found. Building now..."
     npm run build
     if [ $? -ne 0 ]; then
         echo -e "${RED}[✗]${NC} Build failed. Fix the error above and try again."
         exit 1
     fi
+    echo ""
 fi
 
 echo -e "${GREEN}"
@@ -34,17 +35,14 @@ echo -e "${NC}"
 if command -v pm2 &>/dev/null; then
     echo -e "${CYAN}[>]${NC} Using pm2 process manager..."
 
-    # Stop and remove any existing instance cleanly
     pm2 delete endlesscast 2>/dev/null || true
 
-    pm2 start node_modules/.bin/tsx \
+    pm2 start "$SCRIPT_DIR/dist/index.cjs" \
         --name endlesscast \
-        --cwd "$SCRIPT_DIR" \
-        -- server/index.ts
+        --cwd "$SCRIPT_DIR"
 
     pm2 save
 
-    # Wait 3s and verify it didn't immediately crash
     sleep 3
     STATUS=$(pm2 jlist 2>/dev/null | node -e "
         let d='';
@@ -82,7 +80,6 @@ echo -e "${CYAN}[>]${NC} Using nohup (background mode)..."
 PID_FILE="$SCRIPT_DIR/endlesscast.pid"
 LOG_FILE="$SCRIPT_DIR/endlesscast.log"
 
-# Kill any stale process
 if [ -f "$PID_FILE" ]; then
     OLD_PID=$(cat "$PID_FILE")
     if kill -0 "$OLD_PID" 2>/dev/null; then
@@ -92,11 +89,10 @@ if [ -f "$PID_FILE" ]; then
     rm -f "$PID_FILE"
 fi
 
-nohup node_modules/.bin/tsx server/index.ts > "$LOG_FILE" 2>&1 &
+nohup node "$SCRIPT_DIR/dist/index.cjs" > "$LOG_FILE" 2>&1 &
 NEW_PID=$!
 echo "$NEW_PID" > "$PID_FILE"
 
-# Give it 3s to confirm it started
 sleep 3
 if kill -0 "$NEW_PID" 2>/dev/null; then
     echo ""

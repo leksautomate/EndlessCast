@@ -248,7 +248,8 @@ PASSWORD_HASH=$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
 **Option A — Foreground (simplest, closes when you close the window):**
 
 ```cmd
-node node_modules/.bin/tsx server/index.ts
+npm run build
+node dist/index.cjs
 ```
 
 Then open your browser at `http://localhost:5000`
@@ -256,8 +257,9 @@ Then open your browser at `http://localhost:5000`
 **Option B — Background with pm2 (recommended, survives closing the terminal):**
 
 ```cmd
+npm run build
 npm install -g pm2
-pm2 start node_modules/.bin/tsx --name endlesscast -- server/index.ts
+pm2 start dist/index.cjs --name endlesscast
 pm2 save
 ```
 
@@ -358,12 +360,14 @@ EOF
 
 **Foreground (simplest):**
 ```bash
-node node_modules/.bin/tsx server/index.ts
+npm run build
+node dist/index.cjs
 ```
 
 **Background using Termux's built-in method** (so you can close the terminal pane):
 ```bash
-nohup node node_modules/.bin/tsx server/index.ts > endlesscast.log 2>&1 &
+npm run build
+nohup node dist/index.cjs > endlesscast.log 2>&1 &
 echo $! > endlesscast.pid
 echo "Started. PID: $(cat endlesscast.pid)"
 ```

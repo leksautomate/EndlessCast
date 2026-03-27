@@ -4,7 +4,17 @@
 
 EndlessCast is a web application that enables users to upload videos and stream them continuously (24/7) to multiple RTMP endpoints simultaneously. The platform supports major streaming services like YouTube Live, Facebook Live, Rumble, Odysee, and Twitter/X, as well as custom RTMP destinations. Users can manage a video library (up to 200GB storage with 16 videos max), configure RTMP endpoints, and control streaming with real-time status monitoring, email/Telegram notifications, and CDN integration.
 
-## Recent Changes (March 26, 2026)
+## Recent Changes (March 27, 2026)
+
+- **Full UI Redesign**: Replaced hacker/terminal aesthetic with clean, modern dark theme (like Restream/Upstream):
+  - Inter font everywhere (removed all monospace/VT323/JetBrains Mono usage)
+  - Navy/slate background (`#0d1117` style) with blue primary accents (`hsl(217 91% 60%)`)
+  - Rounded cards with subtle borders, clean section headers with icons
+  - Modern landing page, login page, sidebar navigation, and all dashboard pages
+  - Removed all terminal-specific CSS classes (console-pane, scanlines, dot-grid, glow effects)
+  - Clean status indicators and live broadcasting banners
+
+## Previous Changes (March 26, 2026)
 
 - **Per-Endpoint Output Profiles**: Each RTMP endpoint now has an independently configurable output profile:
   - Landscape 1080p (16:9, 6000k) — default
@@ -98,10 +108,11 @@ Preferred communication style: Simple, everyday language.
 - Tailwind CSS for styling with a custom design system
 
 **Design System:**
-- Hacker/terminal aesthetic with neon green accents
-- Typography: Inter for UI text, JetBrains Mono for technical data (RTMP URLs)
+- Clean, modern dark theme (navy/slate background, blue primary accents)
+- Typography: Inter for all text (no monospace fonts in UI)
 - 7 color theme presets (Matrix, Cyber Blue, Sunset, Purple Haze, Blood Red, Amber Terminal, Monochrome)
-- Consistent spacing units (Tailwind: 2, 4, 6, 8)
+- Rounded cards with subtle borders and shadows
+- Consistent spacing with Inter font and clean section headers
 - Component-based architecture with reusable UI primitives
 
 **State Management:**
@@ -289,7 +300,7 @@ Preferred communication style: Simple, everyday language.
 ### Styling & Theming
 - **Tailwind CSS** with PostCSS processing
 - Custom theme configuration in `tailwind.config.ts`
-- Google Fonts: Inter (UI), JetBrains Mono (monospace)
+- Google Fonts: Inter (all UI text)
 - Dark mode with 7 color theme presets
 - Custom status colors (online, away, busy, offline)
 

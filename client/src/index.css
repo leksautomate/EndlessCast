@@ -1,106 +1,79 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* HACKER/CODER THEME - Terminal Inspired Design System */
-/* CSS Variables for dynamic theme switching */
-
 :root {
-  /* Theme color variables - will be overwritten by JS */
-  --theme-primary: 120 100% 50%;
-  --theme-primary-hex: #00ff41;
-  --theme-accent: 120 100% 28%;
-  --theme-accent-hex: #008f11;
-  --theme-bg: 0 0% 5%;
-  --theme-bg-hex: #0d0d0d;
+  --background: 222 47% 6%;
+  --foreground: 210 20% 92%;
+  --border: 217 33% 17%;
 
-  /* Elevation system */
-  --button-outline: rgba(0, 255, 65, 0.15);
-  --badge-outline: rgba(0, 255, 65, 0.1);
-  --opaque-button-border-intensity: 12;
-  --elevate-1: rgba(0, 255, 65, 0.05);
-  --elevate-2: rgba(0, 255, 65, 0.12);
+  --card: 222 47% 8%;
+  --card-foreground: 210 20% 92%;
+  --card-border: 217 33% 17%;
 
-  /* Core colors - Hacker dark theme */
-  --background: 0 0% 3%;
-  --foreground: 120 20% 85%;
-  --border: 120 30% 15%;
-  
-  /* Card styling */
-  --card: 0 0% 6%;
-  --card-foreground: 120 15% 85%;
-  --card-border: 120 40% 18%;
-  
-  /* Sidebar styling */
-  --sidebar: 0 0% 4%;
-  --sidebar-foreground: 120 15% 80%;
-  --sidebar-border: 120 30% 12%;
-  --sidebar-primary: var(--theme-primary);
-  --sidebar-primary-foreground: 0 0% 0%;
-  --sidebar-accent: 120 50% 8%;
-  --sidebar-accent-foreground: 120 100% 50%;
-  --sidebar-ring: var(--theme-primary);
-  
-  /* Popover */
-  --popover: 0 0% 5%;
-  --popover-foreground: 120 15% 85%;
-  --popover-border: 120 30% 15%;
-  
-  /* Primary - Theme color */
-  --primary: var(--theme-primary);
-  --primary-foreground: 0 0% 0%;
-  
-  /* Secondary */
-  --secondary: 0 0% 12%;
-  --secondary-foreground: 120 15% 80%;
-  
-  /* Muted */
-  --muted: 0 0% 10%;
-  --muted-foreground: 120 10% 50%;
-  
-  /* Accent */
-  --accent: var(--theme-accent);
-  --accent-foreground: 120 100% 70%;
-  
-  /* Destructive */
-  --destructive: 0 70% 50%;
+  --sidebar: 222 47% 5%;
+  --sidebar-foreground: 210 20% 80%;
+  --sidebar-border: 217 33% 14%;
+  --sidebar-primary: 217 91% 60%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 217 50% 12%;
+  --sidebar-accent-foreground: 217 91% 60%;
+  --sidebar-ring: 217 91% 60%;
+
+  --popover: 222 47% 8%;
+  --popover-foreground: 210 20% 92%;
+  --popover-border: 217 33% 17%;
+
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 217 20% 14%;
+  --secondary-foreground: 210 20% 80%;
+
+  --muted: 217 20% 12%;
+  --muted-foreground: 215 15% 50%;
+
+  --accent: 217 50% 15%;
+  --accent-foreground: 217 91% 70%;
+
+  --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
-  
-  /* Input */
-  --input: 120 20% 12%;
-  --ring: var(--theme-primary);
-  
-  /* Chart colors */
-  --chart-1: 120 100% 50%;
-  --chart-2: 180 100% 40%;
-  --chart-3: 45 100% 50%;
-  --chart-4: 280 100% 60%;
-  --chart-5: 0 100% 50%;
-  
-  /* Typography */
-  --font-sans: 'JetBrains Mono', 'Share Tech Mono', monospace;
-  --font-serif: 'JetBrains Mono', monospace;
-  --font-mono: 'JetBrains Mono', 'Share Tech Mono', Menlo, monospace;
-  
-  /* Border radius - Sharp/angular for hacker feel */
-  --radius: 0.25rem;
-  
-  /* Shadows with glow effect */
-  --shadow-2xs: 0 0 2px var(--theme-primary-hex);
-  --shadow-xs: 0 0 4px var(--theme-primary-hex);
-  --shadow-sm: 0 0 6px var(--theme-primary-hex), 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow: 0 0 8px var(--theme-primary-hex), 0 2px 4px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 0 12px var(--theme-primary-hex), 0 4px 8px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 0 20px var(--theme-primary-hex), 0 8px 16px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 0 30px var(--theme-primary-hex), 0 12px 24px rgba(0, 0, 0, 0.5);
-  --shadow-2xl: 0 0 40px var(--theme-primary-hex);
-  
-  --tracking-normal: 0.02em;
+
+  --input: 217 25% 14%;
+  --ring: 217 91% 60%;
+
+  --chart-1: 217 91% 60%;
+  --chart-2: 168 84% 44%;
+  --chart-3: 45 93% 58%;
+  --chart-4: 280 80% 60%;
+  --chart-5: 0 72% 51%;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Inter', system-ui, sans-serif;
+
+  --radius: 0.5rem;
+
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.25);
+  --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --shadow-2xl: 0 24px 56px rgba(0, 0, 0, 0.5);
+
+  --tracking-normal: 0em;
   --spacing: 0.25rem;
 
-  /* Border colors */
+  --button-outline: rgba(96, 165, 250, 0.15);
+  --badge-outline: rgba(96, 165, 250, 0.1);
+  --opaque-button-border-intensity: 12;
+  --elevate-1: rgba(96, 165, 250, 0.05);
+  --elevate-2: rgba(96, 165, 250, 0.1);
+
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --primary-border: hsl(var(--primary));
@@ -110,91 +83,12 @@
   --destructive-border: hsl(var(--destructive));
 }
 
-/* Dark mode is default for hacker theme */
 .dark {
-  --button-outline: rgba(0, 255, 65, 0.2);
-  --badge-outline: rgba(0, 255, 65, 0.15);
+  --button-outline: rgba(96, 165, 250, 0.2);
+  --badge-outline: rgba(96, 165, 250, 0.15);
   --opaque-button-border-intensity: 15;
-  --elevate-1: rgba(0, 255, 65, 0.08);
-  --elevate-2: rgba(0, 255, 65, 0.15);
-}
-
-/* Theme color presets - Applied via JavaScript */
-[data-theme="matrix"] {
-  --theme-primary: 120 100% 50%;
-  --theme-primary-hex: #00ff41;
-  --theme-accent: 120 100% 28%;
-  --theme-accent-hex: #008f11;
-  --theme-bg: 0 0% 5%;
-  --elevate-1: rgba(0, 255, 65, 0.05);
-  --elevate-2: rgba(0, 255, 65, 0.12);
-  --button-outline: rgba(0, 255, 65, 0.15);
-}
-
-[data-theme="cyber"] {
-  --theme-primary: 195 100% 50%;
-  --theme-primary-hex: #00d4ff;
-  --theme-accent: 195 100% 40%;
-  --theme-accent-hex: #0099cc;
-  --theme-bg: 230 30% 4%;
-  --elevate-1: rgba(0, 212, 255, 0.05);
-  --elevate-2: rgba(0, 212, 255, 0.12);
-  --button-outline: rgba(0, 212, 255, 0.15);
-}
-
-[data-theme="neon"] {
-  --theme-primary: 300 100% 50%;
-  --theme-primary-hex: #ff00ff;
-  --theme-accent: 300 100% 40%;
-  --theme-accent-hex: #cc00cc;
-  --theme-bg: 300 20% 4%;
-  --elevate-1: rgba(255, 0, 255, 0.05);
-  --elevate-2: rgba(255, 0, 255, 0.12);
-  --button-outline: rgba(255, 0, 255, 0.15);
-}
-
-[data-theme="blood"] {
-  --theme-primary: 0 100% 60%;
-  --theme-primary-hex: #ff3333;
-  --theme-accent: 0 100% 40%;
-  --theme-accent-hex: #cc0000;
-  --theme-bg: 0 20% 4%;
-  --elevate-1: rgba(255, 51, 51, 0.05);
-  --elevate-2: rgba(255, 51, 51, 0.12);
-  --button-outline: rgba(255, 51, 51, 0.15);
-}
-
-[data-theme="ocean"] {
-  --theme-primary: 168 100% 50%;
-  --theme-primary-hex: #00ffcc;
-  --theme-accent: 168 100% 40%;
-  --theme-accent-hex: #00ccaa;
-  --theme-bg: 180 30% 4%;
-  --elevate-1: rgba(0, 255, 204, 0.05);
-  --elevate-2: rgba(0, 255, 204, 0.12);
-  --button-outline: rgba(0, 255, 204, 0.15);
-}
-
-[data-theme="amber"] {
-  --theme-primary: 40 100% 50%;
-  --theme-primary-hex: #ffaa00;
-  --theme-accent: 40 100% 40%;
-  --theme-accent-hex: #cc8800;
-  --theme-bg: 30 30% 4%;
-  --elevate-1: rgba(255, 170, 0, 0.05);
-  --elevate-2: rgba(255, 170, 0, 0.12);
-  --button-outline: rgba(255, 170, 0, 0.15);
-}
-
-[data-theme="violet"] {
-  --theme-primary: 270 100% 70%;
-  --theme-primary-hex: #aa66ff;
-  --theme-accent: 270 70% 55%;
-  --theme-accent-hex: #8844dd;
-  --theme-bg: 270 30% 4%;
-  --elevate-1: rgba(170, 102, 255, 0.05);
-  --elevate-2: rgba(170, 102, 255, 0.12);
-  --button-outline: rgba(170, 102, 255, 0.15);
+  --elevate-1: rgba(96, 165, 250, 0.06);
+  --elevate-2: rgba(96, 165, 250, 0.12);
 }
 
 @layer base {
@@ -203,14 +97,12 @@
   }
 
   body {
-    @apply font-mono antialiased bg-background text-foreground;
-    letter-spacing: 0.02em;
+    @apply font-sans antialiased bg-background text-foreground;
   }
 
-  /* Custom scrollbar for hacker theme */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -218,28 +110,25 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.3);
-    border-radius: 4px;
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.5);
+    background: hsl(var(--muted-foreground) / 0.35);
   }
 
-  /* Selection highlight */
   ::selection {
-    background: hsl(var(--primary) / 0.3);
+    background: hsl(var(--primary) / 0.25);
     color: hsl(var(--foreground));
   }
 }
 
 @layer utilities {
-  /* Hide ugly search cancel button in Chrome */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
 
-  /* Placeholder styling for contentEditable div */
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
@@ -249,7 +138,6 @@
   .no-default-hover-elevate {}
   .no-default-active-elevate {}
 
-  /* Toggle elevation system */
   .toggle-elevate::before,
   .toggle-elevate-2::before {
     content: "";
@@ -268,7 +156,6 @@
     inset: -1px;
   }
 
-  /* Hover/Active elevation system */
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
   .hover-elevate-2:not(.no-default-hover-elevate),
@@ -306,139 +193,24 @@
     inset: -1px;
   }
 
-  /* Glow effects */
-  .glow {
-    text-shadow: 0 0 10px var(--theme-primary-hex), 0 0 20px var(--theme-primary-hex), 0 0 30px var(--theme-primary-hex);
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
   }
 
-  .glow-sm {
-    text-shadow: 0 0 5px var(--theme-primary-hex), 0 0 10px var(--theme-primary-hex);
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  .glow-lg {
-    text-shadow: 0 0 15px var(--theme-primary-hex), 0 0 30px var(--theme-primary-hex), 0 0 45px var(--theme-primary-hex);
+  .slide-down {
+    animation: slideDown 0.3s ease-out;
   }
 
-  .box-glow {
-    box-shadow: 0 0 10px var(--theme-primary-hex), 0 0 20px var(--theme-primary-hex);
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  .box-glow-sm {
-    box-shadow: 0 0 5px var(--theme-primary-hex);
-  }
-
-  .box-glow-lg {
-    box-shadow: 0 0 20px var(--theme-primary-hex), 0 0 40px var(--theme-primary-hex);
-  }
-
-  /* Scanline effect overlay */
-  .scanlines::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: repeating-linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.15),
-      rgba(0, 0, 0, 0.15) 1px,
-      transparent 1px,
-      transparent 2px
-    );
-    pointer-events: none;
-    z-index: 1000;
-  }
-
-  /* Terminal cursor blink */
-  .cursor-blink::after {
-    content: "_";
-    animation: blink 1s step-end infinite;
-  }
-
-  @keyframes blink {
-    50% { opacity: 0; }
-  }
-
-  /* Typing animation */
-  .typing {
-    overflow: hidden;
-    border-right: 2px solid var(--theme-primary-hex);
-    white-space: nowrap;
-    animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
-  }
-
-  @keyframes typing {
-    from { width: 0; }
-    to { width: 100%; }
-  }
-
-  @keyframes blink-caret {
-    50% { border-color: transparent; }
-  }
-
-  /* Matrix rain animation for landing page */
-  .matrix-rain {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 0;
-    overflow: hidden;
-  }
-
-  .matrix-column {
-    position: absolute;
-    top: -100%;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-    color: var(--theme-primary-hex);
-    text-shadow: 0 0 5px var(--theme-primary-hex);
-    animation: matrix-fall linear infinite;
-    opacity: 0.7;
-  }
-
-  @keyframes matrix-fall {
-    to {
-      transform: translateY(200vh);
-    }
-  }
-
-  /* Pulse animation */
-  .pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 0 5px var(--theme-primary-hex);
-    }
-    50% {
-      box-shadow: 0 0 20px var(--theme-primary-hex), 0 0 30px var(--theme-primary-hex);
-    }
-  }
-
-  /* Flicker effect for status indicators */
-  .flicker {
-    animation: flicker 0.15s infinite;
-  }
-
-  @keyframes flicker {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
-  }
-
-  /* Terminal prompt styling */
-  .terminal-prompt::before {
-    content: ">";
-    color: var(--theme-primary-hex);
-    margin-right: 0.5rem;
-    font-weight: bold;
-  }
-
-  /* Status indicators */
   .status-live {
     @apply relative;
   }
@@ -454,223 +226,25 @@
     50% { opacity: 0.5; transform: translateY(-50%) scale(1.2); }
   }
 
-  /* Glitch text effect */
-  .glitch {
-    position: relative;
-  }
-
-  .glitch::before,
-  .glitch::after {
-    content: attr(data-text);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  .glitch::before {
-    left: 2px;
-    text-shadow: -2px 0 var(--theme-accent-hex);
-    clip-path: inset(44% 0 35% 0);
-    animation: glitch-1 2s infinite linear alternate-reverse;
-  }
-
-  .glitch::after {
-    left: -2px;
-    text-shadow: 2px 0 var(--theme-primary-hex);
-    clip-path: inset(35% 0 44% 0);
-    animation: glitch-2 2s infinite linear alternate-reverse;
-  }
-
-  @keyframes glitch-1 {
-    0%, 100% { clip-path: inset(44% 0 35% 0); }
-    20% { clip-path: inset(10% 0 65% 0); }
-    40% { clip-path: inset(55% 0 25% 0); }
-    60% { clip-path: inset(75% 0 5% 0); }
-    80% { clip-path: inset(25% 0 55% 0); }
-  }
-
-  @keyframes glitch-2 {
-    0%, 100% { clip-path: inset(35% 0 44% 0); }
-    20% { clip-path: inset(65% 0 10% 0); }
-    40% { clip-path: inset(25% 0 55% 0); }
-    60% { clip-path: inset(5% 0 75% 0); }
-    80% { clip-path: inset(55% 0 25% 0); }
-  }
-
-  /* Fade in animation */
-  .fade-in {
-    animation: fadeIn 0.5s ease-in-out;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Slide in from left */
-  .slide-in-left {
-    animation: slideInLeft 0.5s ease-out;
-  }
-
-  @keyframes slideInLeft {
-    from { opacity: 0; transform: translateX(-20px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  /* Card hover effect */
-  .card-hover {
-    transition: all 0.3s ease;
-  }
-
-  .card-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 20px var(--theme-primary-hex);
-  }
-
-  /* Border glow on focus */
-  .focus-glow:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px var(--theme-primary-hex);
-  }
-
-  /* Terminal-style input */
-  .terminal-input {
-    @apply bg-transparent border-b-2 border-primary/30 focus:border-primary outline-none transition-colors;
-  }
-
-  /* Hacker button style */
-  .hacker-btn {
-    @apply relative overflow-hidden transition-all duration-300;
-  }
-
-  .hacker-btn::before {
-    content: "";
-    @apply absolute inset-0 bg-primary/10 translate-x-full transition-transform duration-300;
-  }
-
-  .hacker-btn:hover::before {
-    @apply translate-x-0;
-  }
-
-  /* Code block styling */
-  .code-block {
-    @apply bg-black/50 border border-primary/30 rounded font-mono text-sm p-4;
-  }
-
-  /* Stats display */
-  .stat-value {
-    @apply text-2xl font-bold text-primary glow-sm;
-  }
-
-  .stat-label {
-    @apply text-xs uppercase tracking-wider text-muted-foreground;
-  }
-
-  /* VT323 display font — for large status numbers */
-  .font-display {
-    font-family: 'VT323', monospace;
-    letter-spacing: 0.06em;
-    line-height: 1;
-  }
-
-  /* Dot grid background */
-  .dot-grid {
-    background-image: radial-gradient(circle, hsl(var(--primary) / 0.12) 1px, transparent 1px);
-    background-size: 28px 28px;
-  }
-
-  /* Atmospheric grid lines (like graph paper) */
-  .grid-lines {
-    background-image:
-      linear-gradient(hsl(var(--primary) / 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--primary) / 0.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-  }
-
-  /* Console pane — left 3px accent border */
-  .console-pane {
-    @apply relative border border-primary/15 bg-card/40 backdrop-blur-sm;
-    border-left-width: 3px;
-    border-left-color: hsl(var(--primary) / 0.5);
-  }
-
-  /* LIVE state — glowing border pulse on entire sidebar */
-  .sidebar-live {
-    border-right-color: hsl(var(--primary) / 0.4) !important;
-  }
-
-  /* LED indicator dot */
-  .led {
-    @apply inline-block w-2 h-2 rounded-full;
-    box-shadow: 0 0 6px currentColor;
-  }
-
-  .led-green {
-    @apply bg-green-500 text-green-500;
-    animation: led-pulse 1.8s ease-in-out infinite;
-  }
-
-  .led-muted {
-    @apply bg-muted-foreground/30 text-muted-foreground/30;
-  }
-
-  @keyframes led-pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 6px currentColor; }
-    50% { opacity: 0.6; box-shadow: 0 0 12px currentColor, 0 0 20px currentColor; }
-  }
-
-  /* Signal bar animation */
-  .signal-bar {
-    @apply inline-block bg-primary rounded-sm;
-    animation: signal-rise 1.2s ease-in-out infinite alternate;
-  }
-
-  @keyframes signal-rise {
-    0% { opacity: 0.3; }
-    100% { opacity: 1; }
-  }
-
-  /* Top status bar slide in */
-  .slide-down {
-    animation: slideDown 0.3s ease-out;
-  }
-
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Live banner pulse border */
   .live-border-pulse {
     animation: liveBorderPulse 2s ease-in-out infinite;
   }
 
   @keyframes liveBorderPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.0), inset 0 0 0 0 rgba(34, 197, 94, 0.0); }
-    50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.15), inset 0 0 8px rgba(34, 197, 94, 0.05); }
-  }
-
-  /* Nav item active indicator */
-  .nav-active-bar {
-    @apply absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full;
-    box-shadow: 0 0 8px var(--theme-primary-hex);
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.0); }
+    50% { box-shadow: 0 0 12px rgba(34, 197, 94, 0.1); }
   }
 }
 
-/* Global focus styles for accessibility */
 *:focus-visible {
-  outline: 2px solid var(--theme-primary-hex);
+  outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
 }
 
-/* Smooth scroll */
 html {
   scroll-behavior: smooth;
 }
 
-/* Disable animations for reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

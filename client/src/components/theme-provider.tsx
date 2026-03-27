@@ -16,9 +16,9 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const defaultSettings: ThemeSettings = {
   colorTheme: "matrix",
-  terminalFont: true,
+  terminalFont: false,
   scanlines: false,
-  glowEffects: true,
+  glowEffects: false,
 };
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -56,12 +56,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
     document.documentElement.setAttribute("data-theme", theme);
     document.documentElement.classList.add("dark");
-    
-    if (currentSettings.scanlines) {
-      document.body.classList.add("scanlines");
-    } else {
-      document.body.classList.remove("scanlines");
-    }
     
     setLocalTheme(theme);
   }, [settings]);

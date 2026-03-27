@@ -104,6 +104,7 @@ export function StreamingControls({
                     value={hours}
                     onChange={(e) => setHours(Math.max(0, parseInt(e.target.value) || 0))}
                     className="w-full sm:w-16 h-9"
+                    data-testid="input-duration-hours"
                   />
                 </div>
                 <div className="grid gap-1.5 flex-1 sm:flex-none">
@@ -116,6 +117,7 @@ export function StreamingControls({
                     value={minutes}
                     onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
                     className="w-full sm:w-16 h-9"
+                    data-testid="input-duration-minutes"
                   />
                 </div>
               </div>
@@ -134,7 +136,7 @@ export function StreamingControls({
                       LIVE
                     </Badge>
                   </div>
-                  <p className="text-xl sm:text-2xl font-mono font-semibold tabular-nums" data-testid="text-stream-duration">
+                  <p className="text-xl sm:text-2xl font-semibold tabular-nums" data-testid="text-stream-duration">
                     {formatDuration(elapsedTime)}
                   </p>
                 </div>

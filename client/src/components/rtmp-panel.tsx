@@ -172,7 +172,7 @@ function EditEndpointDialog({
               id="edit-rtmpUrl"
               value={form.rtmpUrl}
               onChange={(e) => setForm({ ...form, rtmpUrl: e.target.value })}
-              className="font-mono text-sm"
+              className="text-sm"
               data-testid="input-edit-rtmp-url"
             />
           </div>
@@ -185,7 +185,7 @@ function EditEndpointDialog({
                 type={showKey ? "text" : "password"}
                 value={form.streamKey}
                 onChange={(e) => setForm({ ...form, streamKey: e.target.value })}
-                className="font-mono text-sm"
+                className="text-sm"
                 data-testid="input-edit-stream-key"
               />
               <Button
@@ -263,7 +263,7 @@ function EditEndpointDialog({
                   <SiYoutube className="w-4 h-4" style={{ color: platformInfo.youtube.color }} />
                   YouTube Stream Metadata
                 </p>
-                <p className="text-[10px] font-mono text-muted-foreground/50 mb-3">
+                <p className="text-[10px]  text-muted-foreground/50 mb-3">
                   For reference only — set your live stream title and description in YouTube Studio before going live.
                 </p>
 
@@ -480,7 +480,7 @@ export function RtmpPanel({
                     value={newEndpoint.rtmpUrl}
                     onChange={(e) => setNewEndpoint({ ...newEndpoint, rtmpUrl: e.target.value })}
                     placeholder="rtmp://..."
-                    className="font-mono text-sm"
+                    className="text-sm"
                     data-testid="input-rtmp-url"
                   />
                 </div>
@@ -493,7 +493,7 @@ export function RtmpPanel({
                     value={newEndpoint.streamKey}
                     onChange={(e) => setNewEndpoint({ ...newEndpoint, streamKey: e.target.value })}
                     placeholder="Enter your stream key"
-                    className="font-mono text-sm"
+                    className="text-sm"
                     data-testid="input-stream-key"
                   />
                 </div>
@@ -504,7 +504,7 @@ export function RtmpPanel({
                       <SiYoutube className="w-3 h-3" style={{ color: platformInfo.youtube.color }} />
                       YouTube metadata (for reference only)
                     </p>
-                    <p className="text-[10px] font-mono text-muted-foreground/50">
+                    <p className="text-[10px]  text-muted-foreground/50">
                       Set your live stream title and description in YouTube Studio before going live.
                     </p>
                     <div className="space-y-2">
@@ -615,12 +615,12 @@ export function RtmpPanel({
                         {endpoint.name}
                       </p>
                       {endpoint.enabled ? (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded border border-green-500/40 bg-green-500/10 text-green-400 flex-shrink-0">
+                        <span className="inline-flex items-center gap-1 text-[9px]  tracking-widest uppercase px-1.5 py-0.5 rounded border border-green-500/40 bg-green-500/10 text-green-400 flex-shrink-0">
                           <Radio className="w-2.5 h-2.5" />
                           Live
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded border border-muted-foreground/20 bg-muted/30 text-muted-foreground/50 flex-shrink-0">
+                        <span className="inline-flex items-center gap-1 text-[9px]  tracking-widest uppercase px-1.5 py-0.5 rounded border border-muted-foreground/20 bg-muted/30 text-muted-foreground/50 flex-shrink-0">
                           <BanIcon className="w-2.5 h-2.5" />
                           Excluded
                         </span>
@@ -647,14 +647,14 @@ export function RtmpPanel({
                       </p>
                     )}
 
-                    <p className="text-xs font-mono text-muted-foreground mt-1 truncate">
+                    <p className="text-xs  text-muted-foreground mt-1 truncate">
                       {endpoint.rtmpUrl}
                     </p>
 
                     <div className="mt-1 flex flex-wrap gap-1">
                       <Badge
                         variant="outline"
-                        className="text-xs px-1.5 py-0 font-mono"
+                        className="text-xs px-1.5 py-0 "
                         data-testid={`badge-profile-${endpoint.id}`}
                       >
                         <Monitor className="w-2.5 h-2.5 mr-1" />
@@ -663,7 +663,7 @@ export function RtmpPanel({
                       {endpoint.videoId ? (
                         <Badge
                           variant="outline"
-                          className="text-xs px-1.5 py-0 font-mono border-primary/40 text-primary/80"
+                          className="text-xs px-1.5 py-0  border-primary/40 text-primary/80"
                           data-testid={`badge-video-${endpoint.id}`}
                         >
                           <Film className="w-2.5 h-2.5 mr-1" />
@@ -672,7 +672,7 @@ export function RtmpPanel({
                       ) : (
                         <Badge
                           variant="outline"
-                          className="text-xs px-1.5 py-0 font-mono text-muted-foreground"
+                          className="text-xs px-1.5 py-0  text-muted-foreground"
                           data-testid={`badge-video-global-${endpoint.id}`}
                         >
                           <Film className="w-2.5 h-2.5 mr-1" />
@@ -683,7 +683,7 @@ export function RtmpPanel({
 
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex-1 flex items-center gap-1">
-                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono flex-1 truncate">
+                        <code className="text-xs bg-muted px-2 py-1 rounded  flex-1 truncate">
                           {showKeys[endpoint.id]
                             ? endpoint.streamKey
                             : "••••••••••••••••"}
@@ -728,7 +728,7 @@ export function RtmpPanel({
               >
                 <div className="flex items-center gap-2">
                   <Radio className={`w-3 h-3 ${endpoint.enabled ? "text-green-400" : "text-muted-foreground/40"}`} />
-                  <span className={`text-[10px] font-mono tracking-widest uppercase ${endpoint.enabled ? "text-green-400" : "text-muted-foreground/40"}`}>
+                  <span className={`text-[10px]  tracking-widest uppercase ${endpoint.enabled ? "text-green-400" : "text-muted-foreground/40"}`}>
                     {endpoint.enabled ? "Included in broadcast — click to exclude" : "Not broadcasting — click to include"}
                   </span>
                 </div>

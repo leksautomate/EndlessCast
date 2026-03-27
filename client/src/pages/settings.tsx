@@ -16,7 +16,7 @@ import {
   AlertCircle,
   Palette,
   Send,
-  Terminal,
+  Info,
   Eye,
   EyeOff,
   CheckCircle,
@@ -188,75 +188,75 @@ export default function Settings({ onLogout }: SettingsProps) {
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="max-w-3xl mx-auto space-y-4">
+      <div className="max-w-3xl mx-auto space-y-5">
         <Tabs defaultValue="theme" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-card/50 border border-primary/15 h-auto rounded-lg overflow-hidden p-0">
-            <TabsTrigger value="theme" className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary text-[10px] sm:text-xs font-mono py-2.5 rounded-none tracking-widest uppercase">
-              <Palette className="w-3 h-3 mr-1.5" />
+          <TabsList className="grid w-full grid-cols-3 bg-card border border-border/60 h-auto rounded-lg overflow-hidden p-0">
+            <TabsTrigger value="theme" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs py-2.5 rounded-none">
+              <Palette className="w-3.5 h-3.5 mr-1.5" />
               Theme
             </TabsTrigger>
-            <TabsTrigger value="telegram" className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary text-[10px] sm:text-xs font-mono py-2.5 rounded-none tracking-widest uppercase border-x border-primary/10">
-              <SiTelegram className="w-3 h-3 mr-1.5" />
+            <TabsTrigger value="telegram" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs py-2.5 rounded-none border-x border-border/40">
+              <SiTelegram className="w-3.5 h-3.5 mr-1.5" />
               Telegram
             </TabsTrigger>
-            <TabsTrigger value="email" className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary text-[10px] sm:text-xs font-mono py-2.5 rounded-none tracking-widest uppercase">
-              <Mail className="w-3 h-3 mr-1.5" />
+            <TabsTrigger value="email" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs py-2.5 rounded-none">
+              <Mail className="w-3.5 h-3.5 mr-1.5" />
               Email
             </TabsTrigger>
           </TabsList>
 
-          {/* ── Theme tab ─────────────────────────────────── */}
-          <TabsContent value="theme" className="mt-4">
-            <div className="console-pane rounded-lg">
-              <div className="p-4 sm:p-5 border-b border-primary/10 flex items-center gap-2">
-                <Palette className="w-3.5 h-3.5 text-primary" />
-                <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">Color Theme</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-primary/10 to-transparent" />
+          <TabsContent value="theme" className="mt-5">
+            <div className="rounded-xl border border-border/60 bg-card">
+              <div className="px-5 py-4 border-b border-border/50 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Palette className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Color Theme</h3>
               </div>
-              <div className="p-4 sm:p-5 space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
+              <div className="p-5 space-y-5">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {(Object.keys(themePresets) as ThemeColor[]).filter(t => t !== "custom").map((themeKey) => (
                     <button
                       key={themeKey}
                       onClick={() => setTheme(themeKey)}
-                      className={`p-2 sm:p-4 rounded border transition-all ${
+                      className={`p-3 sm:p-4 rounded-lg border transition-all ${
                         theme === themeKey
                           ? "border-primary bg-primary/10"
-                          : "border-primary/15 hover:border-primary/30"
+                          : "border-border/40 hover:border-primary/30"
                       }`}
                       data-testid={`button-theme-${themeKey}`}
                     >
                       <div
-                        className="w-6 h-6 sm:w-8 sm:h-8 rounded-full mx-auto mb-1 sm:mb-2"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full mx-auto mb-2"
                         style={{
                           backgroundColor: themePresets[themeKey].primary,
                           boxShadow: theme === themeKey ? `0 0 12px ${themePresets[themeKey].primary}` : "none",
                         }}
                       />
-                      <p className="text-[9px] sm:text-[10px] text-center font-mono truncate text-muted-foreground">
+                      <p className="text-xs text-center truncate text-muted-foreground">
                         {themePresets[themeKey].name.split(" ")[0]}
                       </p>
                       {theme === themeKey && (
-                        <CheckCircle className="w-3 h-3 text-primary mx-auto mt-1" />
+                        <CheckCircle className="w-3.5 h-3.5 text-primary mx-auto mt-1" />
                       )}
                     </button>
                   ))}
                 </div>
 
-                <div className="pt-4 border-t border-primary/10 hidden sm:block">
-                  <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/50 mb-3">Preview</p>
-                  <div className="border border-primary/15 rounded p-4 space-y-3 bg-primary/3">
+                <div className="pt-4 border-t border-border/50 hidden sm:block">
+                  <p className="text-xs text-muted-foreground mb-3">Preview</p>
+                  <div className="border border-border/40 rounded-lg p-4 space-y-3 bg-muted/20">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-                      <span className="text-xs font-mono text-primary">Primary Color Active</span>
+                      <span className="text-sm text-primary">Primary Color Active</span>
                     </div>
                     <div className="flex gap-2 flex-wrap">
                       <Button size="sm">Primary</Button>
                       <Button size="sm" variant="outline">Outline</Button>
                       <Button size="sm" variant="ghost">Ghost</Button>
                     </div>
-                    <p className="text-xs font-mono text-muted-foreground/60">
-                      <span className="text-primary">▸</span> Terminal style text preview
+                    <p className="text-xs text-muted-foreground">
+                      Sample text with current theme applied
                     </p>
                   </div>
                 </div>
@@ -264,25 +264,25 @@ export default function Settings({ onLogout }: SettingsProps) {
             </div>
           </TabsContent>
 
-          {/* ── Telegram tab ──────────────────────────────── */}
-          <TabsContent value="telegram" className="mt-4">
-            <div className="console-pane rounded-lg">
-              <div className="p-4 sm:p-5 border-b border-primary/10 flex items-center gap-2">
-                <SiTelegram className="w-3.5 h-3.5 text-primary" />
-                <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">Telegram Notifications</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-primary/10 to-transparent" />
+          <TabsContent value="telegram" className="mt-5">
+            <div className="rounded-xl border border-border/60 bg-card">
+              <div className="px-5 py-4 border-b border-border/50 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <SiTelegram className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Telegram Notifications</h3>
               </div>
-              <div className="p-4 sm:p-5">
+              <div className="p-5">
                 <Form {...telegramForm}>
                   <form onSubmit={telegramForm.handleSubmit(onTelegramSubmit)} className="space-y-5">
-                    <div className="border border-primary/15 rounded-lg p-4 bg-primary/3 space-y-2">
-                      <div className="flex gap-2">
-                        <Terminal className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                        <div className="text-xs text-muted-foreground/70 font-mono">
-                          <p className="font-bold text-foreground/80 mb-2">How to set up Telegram Bot:</p>
-                          <ol className="list-decimal list-inside space-y-1">
-                            <li>Message <span className="text-primary">@BotFather</span> on Telegram</li>
-                            <li>Send <span className="text-primary">/newbot</span> and follow the prompts</li>
+                    <div className="border border-border/40 rounded-lg p-4 bg-muted/20 space-y-2">
+                      <div className="flex gap-2.5">
+                        <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-muted-foreground">
+                          <p className="font-semibold text-foreground mb-2">How to set up Telegram Bot:</p>
+                          <ol className="list-decimal list-inside space-y-1 text-xs">
+                            <li>Message <span className="text-primary font-medium">@BotFather</span> on Telegram</li>
+                            <li>Send <span className="text-primary font-medium">/newbot</span> and follow the prompts</li>
                             <li>Copy the bot token provided</li>
                             <li>Add your bot to a chat/group and get the chat ID</li>
                           </ol>
@@ -295,27 +295,27 @@ export default function Settings({ onLogout }: SettingsProps) {
                       name="botToken"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-mono text-muted-foreground/70 uppercase tracking-widest">Bot Token</FormLabel>
+                          <FormLabel className="text-sm">Bot Token</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
                                 {...field}
                                 type={showTelegramToken ? "text" : "password"}
                                 placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-                                className="bg-background/50 border-primary/25 focus:border-primary pr-10 font-mono text-xs"
+                                className="pr-10"
                                 data-testid="input-telegram-token"
                               />
                               <button
                                 type="button"
                                 onClick={() => setShowTelegramToken(!showTelegramToken)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-primary"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
                                 data-testid="button-toggle-token"
                               >
-                                {showTelegramToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                {showTelegramToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               </button>
                             </div>
                           </FormControl>
-                          <FormDescription className="text-[10px] text-muted-foreground/50">Token from @BotFather</FormDescription>
+                          <FormDescription className="text-xs">Token from @BotFather</FormDescription>
                         </FormItem>
                       )}
                     />
@@ -325,22 +325,21 @@ export default function Settings({ onLogout }: SettingsProps) {
                       name="chatId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-mono text-muted-foreground/70 uppercase tracking-widest">Chat ID</FormLabel>
+                          <FormLabel className="text-sm">Chat ID</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               placeholder="-1001234567890"
-                              className="bg-background/50 border-primary/25 focus:border-primary font-mono text-xs"
                               data-testid="input-telegram-chatid"
                             />
                           </FormControl>
-                          <FormDescription className="text-[10px] text-muted-foreground/50">Your chat or group ID (can be negative)</FormDescription>
+                          <FormDescription className="text-xs">Your chat or group ID (can be negative)</FormDescription>
                         </FormItem>
                       )}
                     />
 
                     <div className="space-y-2 pt-1">
-                      <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/50">Notification Events</p>
+                      <p className="text-xs text-muted-foreground mb-2">Notification Events</p>
                       {[
                         { name: "notifyOnStart" as const, label: "Stream Started", desc: "When broadcast begins" },
                         { name: "notifyOnStop" as const, label: "Stream Stopped", desc: "When broadcast ends" },
@@ -351,10 +350,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                           control={telegramForm.control}
                           name={name}
                           render={({ field }) => (
-                            <FormItem className="flex items-center justify-between rounded border border-primary/12 p-3 bg-primary/3">
+                            <FormItem className="flex items-center justify-between rounded-lg border border-border/40 p-3 bg-muted/10">
                               <div>
-                                <FormLabel className="text-xs font-mono text-foreground/80">{label}</FormLabel>
-                                <FormDescription className="text-[10px] text-muted-foreground/50">{desc}</FormDescription>
+                                <FormLabel className="text-sm text-foreground">{label}</FormLabel>
+                                <FormDescription className="text-xs">{desc}</FormDescription>
                               </div>
                               <FormControl>
                                 <Switch
@@ -372,10 +371,10 @@ export default function Settings({ onLogout }: SettingsProps) {
                         control={telegramForm.control}
                         name="enabled"
                         render={({ field }) => (
-                          <FormItem className="flex items-center justify-between rounded border border-green-500/20 p-3 bg-green-500/5">
+                          <FormItem className="flex items-center justify-between rounded-lg border border-green-500/20 p-3 bg-green-500/5">
                             <div>
-                              <FormLabel className="text-xs font-mono text-foreground/80">Enable Telegram Alerts</FormLabel>
-                              <FormDescription className="text-[10px] text-muted-foreground/50">Master switch for all Telegram notifications</FormDescription>
+                              <FormLabel className="text-sm text-foreground">Enable Telegram Alerts</FormLabel>
+                              <FormDescription className="text-xs">Master switch for all Telegram notifications</FormDescription>
                             </div>
                             <FormControl>
                               <Switch
@@ -410,23 +409,23 @@ export default function Settings({ onLogout }: SettingsProps) {
             </div>
           </TabsContent>
 
-          {/* ── Email tab ─────────────────────────────────── */}
-          <TabsContent value="email" className="mt-4">
-            <div className="console-pane rounded-lg">
-              <div className="p-4 sm:p-5 border-b border-primary/10 flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-primary" />
-                <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">Email Notifications</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-primary/10 to-transparent" />
+          <TabsContent value="email" className="mt-5">
+            <div className="rounded-xl border border-border/60 bg-card">
+              <div className="px-5 py-4 border-b border-border/50 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Mail className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Email Notifications</h3>
               </div>
-              <div className="p-4 sm:p-5">
+              <div className="p-5">
                 <Form {...emailForm}>
                   <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-5">
-                    <div className="border border-primary/15 rounded-lg p-4 bg-primary/3">
-                      <div className="flex gap-2">
+                    <div className="border border-border/40 rounded-lg p-4 bg-muted/20">
+                      <div className="flex gap-2.5">
                         <AlertCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                        <div className="text-xs text-muted-foreground/70 font-mono">
-                          <p className="font-bold text-foreground/80 mb-2">How to get Gmail App Password:</p>
-                          <ol className="list-decimal list-inside space-y-1">
+                        <div className="text-sm text-muted-foreground">
+                          <p className="font-semibold text-foreground mb-2">How to get Gmail App Password:</p>
+                          <ol className="list-decimal list-inside space-y-1 text-xs">
                             <li>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-primary underline">myaccount.google.com/apppasswords</a></li>
                             <li>Select "Mail" and "Windows Device"</li>
                             <li>Copy the 16-character password</li>
@@ -441,17 +440,16 @@ export default function Settings({ onLogout }: SettingsProps) {
                       name="gmailAddress"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-mono text-muted-foreground/70 uppercase tracking-widest">Gmail Address</FormLabel>
+                          <FormLabel className="text-sm">Gmail Address</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type="email"
                               placeholder="your.email@gmail.com"
-                              className="bg-background/50 border-primary/25 focus:border-primary font-mono text-xs"
                               data-testid="input-gmail-address"
                             />
                           </FormControl>
-                          <FormDescription className="text-[10px] text-muted-foreground/50">Your Gmail address for sending alerts</FormDescription>
+                          <FormDescription className="text-xs">Your Gmail address for sending alerts</FormDescription>
                         </FormItem>
                       )}
                     />
@@ -461,17 +459,16 @@ export default function Settings({ onLogout }: SettingsProps) {
                       name="gmailAppPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-mono text-muted-foreground/70 uppercase tracking-widest">Gmail App Password</FormLabel>
+                          <FormLabel className="text-sm">Gmail App Password</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type="password"
                               placeholder="16-character app password"
-                              className="bg-background/50 border-primary/25 focus:border-primary font-mono text-xs"
                               data-testid="input-gmail-password"
                             />
                           </FormControl>
-                          <FormDescription className="text-[10px] text-muted-foreground/50">The 16-character password from Google Account</FormDescription>
+                          <FormDescription className="text-xs">The 16-character password from Google Account</FormDescription>
                         </FormItem>
                       )}
                     />
@@ -481,15 +478,18 @@ export default function Settings({ onLogout }: SettingsProps) {
                         control={emailForm.control}
                         name="notifyOnError"
                         render={({ field }) => (
-                          <FormItem className="flex items-center gap-3 space-y-0 rounded border border-primary/12 p-3 bg-primary/3">
+                          <FormItem className="flex items-center gap-3 space-y-0 rounded-lg border border-border/40 p-3 bg-muted/10">
                             <FormControl>
                               <Checkbox
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                data-testid="checkbox-notify-errors"
+                                data-testid="checkbox-email-error"
                               />
                             </FormControl>
-                            <FormLabel className="text-xs font-mono text-foreground/80 cursor-pointer">Notify on Stream Errors</FormLabel>
+                            <div>
+                              <FormLabel className="text-sm">Notify on errors</FormLabel>
+                              <FormDescription className="text-xs">Receive alerts when stream errors occur</FormDescription>
+                            </div>
                           </FormItem>
                         )}
                       />
@@ -498,31 +498,35 @@ export default function Settings({ onLogout }: SettingsProps) {
                         control={emailForm.control}
                         name="enabled"
                         render={({ field }) => (
-                          <FormItem className="flex items-center gap-3 space-y-0 rounded border border-green-500/20 p-3 bg-green-500/5">
+                          <FormItem className="flex items-center justify-between rounded-lg border border-green-500/20 p-3 bg-green-500/5">
+                            <div>
+                              <FormLabel className="text-sm text-foreground">Enable Email Alerts</FormLabel>
+                              <FormDescription className="text-xs">Master switch for all email notifications</FormDescription>
+                            </div>
                             <FormControl>
-                              <Checkbox
+                              <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                data-testid="checkbox-enable-email"
+                                data-testid="switch-email-enabled"
                               />
                             </FormControl>
-                            <FormLabel className="text-xs font-mono text-foreground/80 cursor-pointer">Enable Email Notifications</FormLabel>
                           </FormItem>
                         )}
                       />
                     </div>
 
                     <div className="flex gap-3 pt-1">
-                      <Button type="submit" disabled={updateEmailMutation.isPending} data-testid="button-save-settings">
+                      <Button type="submit" disabled={updateEmailMutation.isPending} data-testid="button-save-email">
                         {updateEmailMutation.isPending ? "Saving..." : "Save Settings"}
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
-                        disabled={testingEmail || !emailForm.getValues("gmailAddress") || !emailForm.getValues("gmailAppPassword")}
+                        disabled={testingEmail || !emailForm.getValues("gmailAddress")}
                         onClick={handleTestEmail}
-                        data-testid="button-test-connection"
+                        data-testid="button-test-email"
                       >
+                        <Send className="w-3.5 h-3.5 mr-2" />
                         {testingEmail ? "Testing..." : "Test Connection"}
                       </Button>
                     </div>

@@ -18,7 +18,7 @@ export function StorageIndicator({ storageInfo }: StorageIndicatorProps) {
       <div className="flex-1">
         <div className="flex items-center justify-between text-xs mb-1">
           <span className="text-muted-foreground">Storage</span>
-          <span className={`font-mono ${isAtLimit ? "text-status-busy" : isNearLimit ? "text-status-away" : "text-foreground"}`}>
+          <span className={`tabular-nums ${isAtLimit ? "text-status-busy" : isNearLimit ? "text-status-away" : "text-foreground"}`}>
             {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.limit)}
           </span>
         </div>

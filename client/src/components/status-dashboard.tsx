@@ -171,13 +171,13 @@ export function StatusDashboard({
                     {status.bitrate && (
                       <div>
                         <p className="text-xs text-muted-foreground">Bitrate</p>
-                        <p className="text-sm font-mono">{(status.bitrate / 1000).toFixed(0)} kbps</p>
+                        <p className="text-sm tabular-nums">{(status.bitrate / 1000).toFixed(0)} kbps</p>
                       </div>
                     )}
                     {status.fps && (
                       <div>
                         <p className="text-xs text-muted-foreground">FPS</p>
-                        <p className="text-sm font-mono">{status.fps}</p>
+                        <p className="text-sm tabular-nums">{status.fps}</p>
                       </div>
                     )}
                   </div>

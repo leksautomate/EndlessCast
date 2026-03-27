@@ -109,7 +109,7 @@ export function VideoLibrary({
           {hasActiveUploads ? (
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-spin" />
-              <p className="text-xs sm:text-sm text-primary font-mono">
+              <p className="text-xs sm:text-sm text-primary font-medium">
                 Uploading {activeJobs.length} file{activeJobs.length !== 1 ? "s" : ""}...
               </p>
               <p className="text-[10px] text-muted-foreground">
@@ -138,7 +138,7 @@ export function VideoLibrary({
       {uploadQueue.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
               Upload Queue
             </p>
             {finishedJobs.length > 0 && (
@@ -181,7 +181,7 @@ export function VideoLibrary({
                     <Loader2 className="w-3.5 h-3.5 text-primary flex-shrink-0 animate-spin" />
                   )}
 
-                  <span className="text-xs font-mono truncate flex-1 min-w-0" title={job.name}>
+                  <span className="text-xs truncate flex-1 min-w-0" title={job.name}>
                     {job.name}
                   </span>
 
@@ -190,18 +190,18 @@ export function VideoLibrary({
                   </span>
 
                   {job.status === "uploading" && (
-                    <span className="text-[10px] font-mono text-primary flex-shrink-0 w-8 text-right">
+                    <span className="text-[10px] text-primary flex-shrink-0 w-8 text-right tabular-nums">
                       {job.progress}%
                     </span>
                   )}
                   {job.status === "done" && (
-                    <span className="text-[10px] font-mono text-green-500 flex-shrink-0">done</span>
+                    <span className="text-[10px] text-green-500 flex-shrink-0">done</span>
                   )}
                   {job.status === "error" && (
-                    <span className="text-[10px] font-mono text-destructive flex-shrink-0">failed</span>
+                    <span className="text-[10px] text-destructive flex-shrink-0">failed</span>
                   )}
                   {job.status === "pending" && (
-                    <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0">queued</span>
+                    <span className="text-[10px] text-muted-foreground flex-shrink-0">queued</span>
                   )}
                 </div>
 

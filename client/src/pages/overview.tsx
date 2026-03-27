@@ -13,12 +13,9 @@ import {
   Clock,
   Database,
   Zap,
-  Server,
   Wifi,
   Camera,
-  Signal,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function formatUptime(startedAt: string | null | undefined): string {
   if (!startedAt) return "00:00:00";
@@ -41,12 +38,13 @@ function formatBytes(bytes: number): string {
 
 function SectionHeader({ icon: Icon, label, accent }: { icon: React.ElementType; label: string; accent?: boolean }) {
   return (
-    <div className={`flex items-center gap-2 pb-3 mb-4 border-b ${accent ? "border-b-green-500/20" : "border-b-primary/10"}`}>
-      <Icon className={`w-3.5 h-3.5 ${accent ? "text-green-500" : "text-primary"}`} />
-      <span className={`text-[10px] font-mono font-bold tracking-[0.2em] uppercase ${accent ? "text-green-500" : "text-primary/80"}`}>
+    <div className="flex items-center gap-2.5 pb-3 mb-4 border-b border-border/50">
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${accent ? "bg-green-500/10" : "bg-primary/10"}`}>
+        <Icon className={`w-4 h-4 ${accent ? "text-green-500" : "text-primary"}`} />
+      </div>
+      <h3 className={`text-sm font-semibold ${accent ? "text-green-500" : "text-foreground"}`}>
         {label}
-      </span>
-      <div className={`flex-1 h-px ${accent ? "bg-gradient-to-r from-green-500/20 to-transparent" : "bg-gradient-to-r from-primary/10 to-transparent"}`} />
+      </h3>
     </div>
   );
 }
@@ -81,7 +79,7 @@ export default function Overview() {
       apiRequest("POST", "/api/streaming/start", { durationSeconds }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/streaming/state"] });
-      toast({ title: "Stream Initiated", description: "Broadcasting to all enabled endpoints." });
+      toast({ title: "Stream Started", description: "Broadcasting to all enabled endpoints." });
     },
     onError: (error: Error) => {
       toast({ title: "Stream Failed", description: error.message, variant: "destructive" });
@@ -92,25 +90,27 @@ export default function Overview() {
     mutationFn: async () => apiRequest("POST", "/api/streaming/stop"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/streaming/state"] });
-      toast({ title: "Stream Terminated", description: "All broadcasts stopped." });
+      toast({ title: "Stream Stopped", description: "All broadcasts stopped." });
     },
   });
 
   return (
     <div className="min-h-full">
-      {/* ── LIVE broadcast banner ─────────────────────────────── */}
       {isLive && (
-        <div className="border-b border-green-500/20 bg-green-500/5 live-border-pulse px-4 sm:px-6 py-4 slide-down">
+        <div className="border-b border-green-500/20 bg-green-500/5 px-4 sm:px-6 py-4 slide-down">
           <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-green-500 animate-pulse" />
-                <span className="text-[10px] font-mono text-green-500/70 uppercase tracking-[0.3em]">Broadcasting</span>
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                </span>
+                <span className="text-sm font-semibold text-green-500">Broadcasting</span>
               </div>
-              <div className="h-6 w-px bg-green-500/20" />
+              <div className="h-5 w-px bg-green-500/20" />
               <div>
-                <span className="text-[9px] font-mono text-green-500/50 uppercase tracking-widest block leading-none mb-0.5">Uptime</span>
-                <span className="font-display text-3xl text-green-400 leading-none glow-sm" data-testid="text-uptime">
+                <span className="text-xs text-green-500/60 block leading-none mb-0.5">Uptime</span>
+                <span className="text-2xl font-bold text-green-400 tabular-nums leading-none" data-testid="text-uptime">
                   {uptime}
                 </span>
               </div>
@@ -118,116 +118,92 @@ export default function Overview() {
 
             <div className="flex items-center gap-6">
               <div className="text-center">
-                <span className="text-[9px] font-mono text-green-500/50 uppercase tracking-widest block leading-none mb-0.5">Channels</span>
-                <span className="font-display text-3xl text-green-400 leading-none" data-testid="text-live-channels">
+                <span className="text-xs text-green-500/60 block leading-none mb-0.5">Channels</span>
+                <span className="text-2xl font-bold text-green-400 tabular-nums leading-none" data-testid="text-live-channels">
                   {liveEndpoints}/{enabledEndpoints.length}
                 </span>
               </div>
               {selectedVideo && (
-                <>
-                  <div className="h-6 w-px bg-green-500/20 hidden sm:block" />
-                  <div className="hidden sm:block text-center">
-                    <span className="text-[9px] font-mono text-green-500/50 uppercase tracking-widest block leading-none mb-0.5">Now Playing</span>
-                    <span className="text-xs font-mono text-green-300 max-w-[200px] truncate block leading-none" data-testid="text-now-playing">
-                      {selectedVideo.originalName}
-                    </span>
-                  </div>
-                </>
+                <div className="hidden sm:block text-center">
+                  <span className="text-xs text-green-500/60 block leading-none mb-0.5">Now Playing</span>
+                  <span className="text-sm text-green-300 max-w-[200px] truncate block leading-none" data-testid="text-now-playing">
+                    {selectedVideo.originalName}
+                  </span>
+                </div>
               )}
-              {/* Signal bars */}
-              <div className="flex items-end gap-0.5 h-6">
-                {[1,2,3,4,5].map((i) => (
-                  <span
-                    key={i}
-                    className="signal-bar w-1.5"
-                    style={{
-                      height: `${i * 20}%`,
-                      opacity: i <= liveEndpoints ? 1 : 0.2,
-                      animationDelay: `${i * 0.15}s`,
-                    }}
-                  />
-                ))}
-              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Main content ─────────────────────────────────────────── */}
       <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
-
-        {/* ── Stats row ────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {/* Status */}
-          <div className={`console-pane rounded-lg p-3 sm:p-4 ${isLive ? "border-l-green-500/70 border-green-500/15" : ""}`}>
-            <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">Status</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className={`rounded-xl border p-4 ${isLive ? "border-green-500/20 bg-green-500/5" : "border-border/60 bg-card"}`}>
+            <p className="text-xs text-muted-foreground mb-2">Status</p>
             <div className="flex items-end justify-between gap-2">
               <span
-                className={`font-display text-4xl leading-none ${isLive ? "text-green-400" : "text-muted-foreground/40"}`}
+                className={`text-2xl font-bold ${isLive ? "text-green-500" : "text-muted-foreground/50"}`}
                 data-testid="text-stream-status"
               >
-                {isLive ? "LIVE" : "OFF"}
+                {isLive ? "LIVE" : "Offline"}
               </span>
-              <div className={`w-8 h-8 rounded flex items-center justify-center flex-shrink-0 ${
-                isLive ? "bg-green-500/15 border border-green-500/30" : "bg-muted/20 border border-muted/20"
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                isLive ? "bg-green-500/10" : "bg-muted/30"
               }`}>
-                <Activity className={`w-4 h-4 ${isLive ? "text-green-500 animate-pulse" : "text-muted-foreground/30"}`} />
+                <Activity className={`w-4 h-4 ${isLive ? "text-green-500" : "text-muted-foreground/30"}`} />
               </div>
             </div>
           </div>
 
-          {/* Uptime (only when not live — live shows in banner) */}
-          <div className="console-pane rounded-lg p-3 sm:p-4">
-            <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">Uptime</p>
+          <div className="rounded-xl border border-border/60 bg-card p-4">
+            <p className="text-xs text-muted-foreground mb-2">Uptime</p>
             <div className="flex items-end justify-between gap-2">
-              <span className="font-display text-4xl text-primary/80 leading-none glow-sm" data-testid="text-uptime-sm">
+              <span className="text-2xl font-bold text-foreground/80 tabular-nums" data-testid="text-uptime-sm">
                 {isLive ? uptime : "--:--"}
               </span>
-              <div className="w-8 h-8 rounded flex items-center justify-center bg-primary/8 border border-primary/20 flex-shrink-0">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
                 <Clock className="w-4 h-4 text-primary/60" />
               </div>
             </div>
           </div>
 
-          {/* Endpoints */}
-          <div className="console-pane rounded-lg p-3 sm:p-4">
-            <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">Endpoints</p>
+          <div className="rounded-xl border border-border/60 bg-card p-4">
+            <p className="text-xs text-muted-foreground mb-2">Endpoints</p>
             <div className="flex items-end justify-between gap-2">
               <div>
-                <span className="font-display text-4xl leading-none" data-testid="text-endpoints-count">
-                  <span className={isLive ? "text-green-400" : "text-foreground/60"}>{liveEndpoints}</span>
-                  <span className="text-muted-foreground/30 text-2xl">/{enabledEndpoints.length}</span>
+                <span className="text-2xl font-bold tabular-nums" data-testid="text-endpoints-count">
+                  <span className={isLive ? "text-green-500" : "text-foreground/70"}>{liveEndpoints}</span>
+                  <span className="text-muted-foreground/40 text-lg">/{enabledEndpoints.length}</span>
                 </span>
               </div>
-              <div className="w-8 h-8 rounded flex items-center justify-center bg-primary/8 border border-primary/20 flex-shrink-0">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
                 <Radio className="w-4 h-4 text-primary/60" />
               </div>
             </div>
           </div>
 
-          {/* Storage */}
-          <div className="console-pane rounded-lg p-3 sm:p-4">
-            <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">Storage</p>
+          <div className="rounded-xl border border-border/60 bg-card p-4">
+            <p className="text-xs text-muted-foreground mb-2">Storage</p>
             <div className="flex items-end justify-between gap-2">
               <span
-                className={`font-display text-4xl leading-none ${storagePct > 90 ? "text-destructive" : storagePct > 70 ? "text-yellow-500" : "text-foreground/70"}`}
+                className={`text-2xl font-bold ${storagePct > 90 ? "text-destructive" : storagePct > 70 ? "text-yellow-500" : "text-foreground/70"}`}
                 data-testid="text-storage-percent"
               >
                 {storagePct}%
               </span>
-              <div className="w-8 h-8 rounded flex items-center justify-center bg-primary/8 border border-primary/20 flex-shrink-0">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
                 <Database className="w-4 h-4 text-primary/60" />
               </div>
             </div>
             {storageInfo && (
-              <div className="mt-2">
-                <div className="h-0.5 bg-muted/20 rounded-full overflow-hidden">
+              <div className="mt-3">
+                <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${storagePct > 90 ? "bg-destructive" : "bg-primary/60"}`}
                     style={{ width: `${storagePct}%` }}
                   />
                 </div>
-                <p className="text-[9px] text-muted-foreground/40 mt-1 font-mono">
+                <p className="text-[11px] text-muted-foreground/60 mt-1.5">
                   {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.limit)}
                 </p>
               </div>
@@ -235,8 +211,7 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* ── Stream control ───────────────────────────────────── */}
-        <div className={`console-pane rounded-lg p-4 sm:p-5 ${isLive ? "border-l-green-500/50 border-green-500/15" : ""}`}>
+        <div className={`rounded-xl border p-5 ${isLive ? "border-green-500/20 bg-green-500/5" : "border-border/60 bg-card"}`}>
           <SectionHeader icon={Zap} label="Stream Control" accent={isLive} />
           <StreamingControls
             selectedVideo={selectedVideo}
@@ -249,23 +224,20 @@ export default function Overview() {
           />
         </div>
 
-        {/* ── Extra camera ─────────────────────────────────────── */}
-        <div className="console-pane rounded-lg p-4 sm:p-5">
+        <div className="rounded-xl border border-border/60 bg-card p-5">
           <SectionHeader icon={Camera} label="Extra Camera (PiP)" />
           <ExtraCameraPanel videos={videos} streamingState={streamingState} />
         </div>
 
-        {/* ── Stream health (only when live) ───────────────────── */}
         {isLive && (
-          <div className="console-pane rounded-lg p-4 sm:p-5 border-l-green-500/50 border-green-500/15 slide-down">
+          <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-5 slide-down">
             <SectionHeader icon={Activity} label="Stream Health" accent />
             <StreamHealthMonitor endpoints={enabledEndpoints} streamingState={streamingState} />
           </div>
         )}
 
-        {/* ── Endpoint status ──────────────────────────────────── */}
         {enabledEndpoints.length > 0 && (
-          <div className="console-pane rounded-lg p-4 sm:p-5">
+          <div className="rounded-xl border border-border/60 bg-card p-5">
             <SectionHeader icon={Wifi} label="Endpoint Status" />
             <StatusDashboard endpoints={enabledEndpoints} streamingState={streamingState} />
           </div>

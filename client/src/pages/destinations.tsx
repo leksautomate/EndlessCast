@@ -51,26 +51,28 @@ export default function Destinations() {
   });
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4">
-      {/* RTMP endpoints */}
-      <div className="console-pane rounded-lg p-4 sm:p-5">
-        <div className="flex items-center gap-2 pb-3 mb-4 border-b border-primary/10">
-          <Server className="w-3.5 h-3.5 text-primary" />
-          <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">Broadcast Channels</span>
-          <div className="flex-1 h-px bg-gradient-to-r from-primary/10 to-transparent" />
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
+      <div className="rounded-xl border border-border/60 bg-card p-5">
+        <div className="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-border/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Server className="w-4 h-4 text-primary" />
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">Broadcast Channels</h3>
+          </div>
           {endpoints.length > 0 && (
             <div className="flex items-center gap-2">
               {disabledEndpoints.length > 0 && (
-                <span className="text-[9px] font-mono text-muted-foreground/40">
+                <span className="text-xs text-muted-foreground">
                   {disabledEndpoints.length} excluded
                 </span>
               )}
-              <span className={`inline-flex items-center gap-1 text-[9px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded border ${
+              <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${
                 enabledEndpoints.length > 0
-                  ? "border-green-500/30 bg-green-500/8 text-green-400"
-                  : "border-muted-foreground/20 text-muted-foreground/40"
+                  ? "border-green-500/30 bg-green-500/10 text-green-500"
+                  : "border-border text-muted-foreground"
               }`}>
-                <Radio className="w-2.5 h-2.5" />
+                <Radio className="w-3 h-3" />
                 {enabledEndpoints.length} / {endpoints.length} selected
               </span>
             </div>
@@ -86,13 +88,13 @@ export default function Destinations() {
         />
       </div>
 
-      {/* Endpoint status */}
       {enabledEndpoints.length > 0 && (
-        <div className="console-pane rounded-lg p-4 sm:p-5">
-          <div className="flex items-center gap-2 pb-3 mb-4 border-b border-primary/10">
-            <Wifi className="w-3.5 h-3.5 text-primary" />
-            <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">Endpoint Status</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-primary/10 to-transparent" />
+        <div className="rounded-xl border border-border/60 bg-card p-5">
+          <div className="flex items-center gap-2.5 pb-3 mb-4 border-b border-border/50">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Wifi className="w-4 h-4 text-primary" />
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">Endpoint Status</h3>
           </div>
           <StatusDashboard endpoints={enabledEndpoints} streamingState={streamingState} />
         </div>

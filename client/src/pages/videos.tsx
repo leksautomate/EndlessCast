@@ -176,42 +176,43 @@ export default function Videos() {
   const storagePct = storageInfo ? Math.round((storageInfo.used / storageInfo.limit) * 100) : 0;
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4">
-      {/* Storage strip */}
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
       {storageInfo && (
-        <div className="flex items-center gap-4 px-4 py-3 console-pane rounded-lg">
-          <Database className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
+        <div className="flex items-center gap-4 px-5 py-4 rounded-xl border border-border/60 bg-card">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Database className="w-4 h-4 text-primary/60" />
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/60">
+              <span className="text-xs text-muted-foreground">
                 Storage Usage
               </span>
-              <span className="text-[10px] font-mono text-muted-foreground/70">
+              <span className="text-xs text-muted-foreground">
                 {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.limit)}
               </span>
             </div>
-            <div className="h-1 bg-muted/20 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${storagePct > 90 ? "bg-destructive" : "bg-primary/60"}`}
                 style={{ width: `${storagePct}%` }}
               />
             </div>
           </div>
-          <span className={`font-display text-2xl leading-none flex-shrink-0 ${storagePct > 90 ? "text-destructive" : "text-primary/70"}`}>
+          <span className={`text-2xl font-bold leading-none flex-shrink-0 tabular-nums ${storagePct > 90 ? "text-destructive" : "text-foreground/70"}`}>
             {storagePct}%
           </span>
-          <span className="text-[9px] font-mono text-muted-foreground/40 flex-shrink-0">
-            [{videos.length}/{storageInfo?.maxVideos || 4}]
+          <span className="text-xs text-muted-foreground flex-shrink-0">
+            {videos.length}/{storageInfo?.maxVideos || 4} files
           </span>
         </div>
       )}
 
-      {/* Library */}
-      <div className="console-pane rounded-lg p-4 sm:p-5">
-        <div className="flex items-center gap-2 pb-3 mb-4 border-b border-primary/10">
-          <MonitorPlay className="w-3.5 h-3.5 text-primary" />
-          <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">Video Library</span>
-          <div className="flex-1 h-px bg-gradient-to-r from-primary/10 to-transparent" />
+      <div className="rounded-xl border border-border/60 bg-card p-5">
+        <div className="flex items-center gap-2.5 pb-3 mb-4 border-b border-border/50">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <MonitorPlay className="w-4 h-4 text-primary" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground">Video Library</h3>
         </div>
         <VideoLibrary
           videos={videos}

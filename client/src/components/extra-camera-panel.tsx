@@ -72,7 +72,7 @@ export function ExtraCameraPanel({ videos, streamingState }: ExtraCameraPanelPro
               <p className="text-sm font-medium truncate" data-testid="text-extra-camera-video">
                 {currentVideo?.originalName ?? "Unknown video"}
               </p>
-              <p className="text-xs text-muted-foreground font-mono">
+              <p className="text-xs text-muted-foreground">
                 {extraCameraPositionInfo[current.position].label} · {current.sizePercent}% size
               </p>
             </div>
@@ -114,7 +114,7 @@ export function ExtraCameraPanel({ videos, streamingState }: ExtraCameraPanelPro
         <div className="grid gap-4 sm:grid-cols-3">
           {/* Video selector */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs text-muted-foreground">
               Camera Video
             </Label>
             {availableVideos.length === 0 ? (
@@ -143,7 +143,7 @@ export function ExtraCameraPanel({ videos, streamingState }: ExtraCameraPanelPro
 
           {/* Position selector */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs text-muted-foreground">
               Corner
             </Label>
             <Select
@@ -167,7 +167,7 @@ export function ExtraCameraPanel({ videos, streamingState }: ExtraCameraPanelPro
 
           {/* Size slider */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs text-muted-foreground">
               Size — <span className="text-foreground">{sizePercent}%</span>
             </Label>
             <Slider
@@ -180,7 +180,7 @@ export function ExtraCameraPanel({ videos, streamingState }: ExtraCameraPanelPro
               className="mt-3"
               data-testid="slider-extra-camera-size"
             />
-            <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+            <div className="flex justify-between text-[10px] text-muted-foreground">
               <span>10%</span>
               <span>50%</span>
             </div>
@@ -204,7 +204,7 @@ export function ExtraCameraPanel({ videos, streamingState }: ExtraCameraPanelPro
       )}
 
       {isStreaming && (
-        <p className="text-xs text-muted-foreground font-mono">
+        <p className="text-xs text-muted-foreground">
           Stop the stream to change the extra camera configuration.
         </p>
       )}

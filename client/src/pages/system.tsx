@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import {
-  Terminal,
   Cpu,
   MemoryStick,
   HardDrive,
@@ -12,6 +11,7 @@ import {
   Server,
   Zap,
   Radio,
+  Loader2,
 } from "lucide-react";
 
 interface SystemInfo {
@@ -56,7 +56,7 @@ function fmtUptime(secs: number): string {
 function UsageBar({ pct, warn = 70, danger = 90 }: { pct: number; warn?: number; danger?: number }) {
   const color = pct >= danger ? "bg-destructive" : pct >= warn ? "bg-yellow-500" : "bg-primary/60";
   return (
-    <div className="h-1 w-full bg-muted/20 rounded-full overflow-hidden mt-2">
+    <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden mt-2">
       <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${Math.min(pct, 100)}%` }} />
     </div>
   );
@@ -64,37 +64,39 @@ function UsageBar({ pct, warn = 70, danger = 90 }: { pct: number; warn?: number;
 
 function StatRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-primary/5 last:border-0">
-      <span className="text-[10px] text-muted-foreground/60 font-mono">{label}</span>
-      <span className="text-[10px] font-mono text-foreground/80">{value}</span>
+    <div className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs text-foreground/80">{value}</span>
     </div>
   );
 }
 
 function CheckRow({ ok, label, detail }: { ok: boolean | null; label: string; detail?: string }) {
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-primary/5 last:border-0">
+    <div className="flex items-center gap-3 py-2 border-b border-border/30 last:border-0">
       {ok === null
-        ? <AlertCircle className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" />
+        ? <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
         : ok
-        ? <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-        : <XCircle className="w-3.5 h-3.5 text-destructive flex-shrink-0" />
+        ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+        : <XCircle className="w-4 h-4 text-destructive flex-shrink-0" />
       }
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-mono text-foreground/80">{label}</p>
-        {detail && <p className="text-[10px] text-muted-foreground/50">{detail}</p>}
+        <p className="text-sm text-foreground/80">{label}</p>
+        {detail && <p className="text-xs text-muted-foreground mt-0.5">{detail}</p>}
       </div>
     </div>
   );
 }
 
-function SectionTitle({ icon: Icon, label, badge }: { icon: React.ElementType; label: string; badge?: string }) {
+function SectionHeader({ icon: Icon, label, badge }: { icon: React.ElementType; label: string; badge?: string }) {
   return (
-    <div className="flex items-center gap-2 pb-3 mb-4 border-b border-primary/10">
-      <Icon className="w-3.5 h-3.5 text-primary" />
-      <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-primary/80">{label}</span>
-      <div className="flex-1 h-px bg-gradient-to-r from-primary/10 to-transparent" />
-      {badge && <span className="text-[9px] font-mono text-muted-foreground/40">{badge}</span>}
+    <div className="flex items-center gap-2.5 pb-3 mb-4 border-b border-border/50">
+      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+        <Icon className="w-4 h-4 text-primary" />
+      </div>
+      <h3 className="text-sm font-semibold text-foreground">{label}</h3>
+      <div className="flex-1" />
+      {badge && <span className="text-xs text-muted-foreground">{badge}</span>}
     </div>
   );
 }
@@ -122,52 +124,48 @@ export default function SystemPage() {
   const uploadsPct = info ? (info.uploads.used / info.uploads.limit) * 100 : 0;
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-5">
       {isLoading && (
-        <div className="text-center py-20 text-muted-foreground/40 font-mono text-xs">
-          <Terminal className="w-6 h-6 mx-auto mb-2 animate-pulse text-primary/40" />
-          Probing system...
+        <div className="text-center py-20 text-muted-foreground">
+          <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin text-primary" />
+          <span className="text-sm">Loading system info...</span>
         </div>
       )}
 
       {info && (
         <>
-          {/* ── Stream capacity summary ────────────────────── */}
-          <div className="console-pane rounded-lg p-4 sm:p-5">
-            <SectionTitle icon={Zap} label="Stream Capacity" />
+          <div className="rounded-xl border border-border/60 bg-card p-5">
+            <SectionHeader icon={Zap} label="Stream Capacity" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
               {[
                 { label: "Recommended 1080p", value: info.capacity.recommended1080p, sub: "simultaneous", color: "text-primary" },
                 { label: "Recommended 720p",  value: info.capacity.recommended720p,  sub: "simultaneous", color: "text-primary" },
-                { label: "Active Now",        value: info.streaming.active, sub: `of ${info.streaming.enabled} enabled`, color: info.streaming.active > 0 ? "text-green-400" : "text-muted-foreground/40" },
+                { label: "Active Now",        value: info.streaming.active, sub: `of ${info.streaming.enabled} enabled`, color: info.streaming.active > 0 ? "text-green-500" : "text-muted-foreground" },
                 { label: "Per 1080p Stream",  value: `~${info.capacity.bandwidthPer1080pMbps}`, sub: "Mbps upload", color: "text-foreground/70" },
               ].map((item) => (
-                <div key={item.label} className="p-3 rounded border border-primary/10 bg-primary/3 text-center">
-                  <p className="text-[9px] text-muted-foreground/50 font-mono uppercase tracking-widest mb-1">{item.label}</p>
-                  <p className={`font-display text-3xl leading-none ${item.color}`}>{item.value}</p>
-                  <p className="text-[9px] text-muted-foreground/40 mt-1">{item.sub}</p>
+                <div key={item.label} className="p-3 rounded-lg border border-border/40 bg-muted/20 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
+                  <p className={`text-3xl font-bold leading-none ${item.color}`}>{item.value}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">{item.sub}</p>
                 </div>
               ))}
             </div>
-            <div className="rounded border border-primary/10 bg-primary/3 p-3">
-              <p className="text-[10px] text-muted-foreground/60 font-mono leading-relaxed">
-                <span className="text-primary/70">▸ </span>
-                {info.cpu.cores} CPU cores · {fmt(info.ram.total)} RAM · each 1080p stream uses ~2 cores + 512 MB · total needed for {info.capacity.recommended1080p} streams:{" "}
-                <span className="text-foreground/80">{(info.capacity.recommended1080p * info.capacity.bandwidthPer1080pMbps).toFixed(1)} Mbps upload</span>
+            <div className="rounded-lg border border-border/40 bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {info.cpu.cores} CPU cores, {fmt(info.ram.total)} RAM — each 1080p stream uses ~2 cores + 512 MB. Total needed for {info.capacity.recommended1080p} streams:{" "}
+                <span className="text-foreground/80 font-medium">{(info.capacity.recommended1080p * info.capacity.bandwidthPer1080pMbps).toFixed(1)} Mbps upload</span>
               </p>
             </div>
           </div>
 
-          {/* ── Resource meters ────────────────────────────── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* CPU */}
-            <div className="console-pane rounded-lg p-4">
-              <SectionTitle icon={Cpu} label="CPU" />
-              <div className="mb-2">
-                <span className="font-display text-4xl text-primary leading-none" data-testid="text-cpu-cores">{info.cpu.cores}</span>
-                <span className="text-xs text-muted-foreground/50 font-mono ml-2">cores</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="rounded-xl border border-border/60 bg-card p-5">
+              <SectionHeader icon={Cpu} label="CPU" />
+              <div className="mb-3">
+                <span className="text-4xl font-bold text-primary leading-none" data-testid="text-cpu-cores">{info.cpu.cores}</span>
+                <span className="text-sm text-muted-foreground ml-2">cores</span>
               </div>
-              <StatRow label="Model" value={<span className="truncate max-w-[160px] block text-right text-[10px]" title={info.cpu.model}>{info.cpu.model}</span>} />
+              <StatRow label="Model" value={<span className="truncate max-w-[160px] block text-right text-xs" title={info.cpu.model}>{info.cpu.model}</span>} />
               <StatRow label="Architecture" value={info.cpu.arch} />
               <StatRow label="OS" value={`${info.os.type} (${info.os.platform})`} />
               <StatRow label="Kernel" value={info.os.release} />
@@ -175,58 +173,55 @@ export default function SystemPage() {
               <StatRow label="Process Uptime" value={fmtUptime(info.uptime.process)} />
             </div>
 
-            {/* RAM */}
-            <div className="console-pane rounded-lg p-4">
-              <SectionTitle icon={MemoryStick} label="RAM" />
-              <div className="mb-2">
-                <span className="font-display text-4xl text-primary leading-none" data-testid="text-ram-total">{fmt(info.ram.total)}</span>
+            <div className="rounded-xl border border-border/60 bg-card p-5">
+              <SectionHeader icon={MemoryStick} label="RAM" />
+              <div className="mb-3">
+                <span className="text-4xl font-bold text-primary leading-none" data-testid="text-ram-total">{fmt(info.ram.total)}</span>
               </div>
               <StatRow label="Used" value={fmt(info.ram.used)} />
               <StatRow label="Free" value={fmt(info.ram.free)} />
               <StatRow label="Usage" value={
-                <Badge variant="secondary" className={`text-[10px] ${ramPct >= 90 ? "bg-destructive/15 text-destructive border-destructive/30" : ramPct >= 70 ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" : "bg-primary/10 text-primary border-primary/20"}`}>
+                <Badge variant="secondary" className={`text-xs ${ramPct >= 90 ? "bg-destructive/15 text-destructive border-destructive/30" : ramPct >= 70 ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" : "bg-primary/10 text-primary border-primary/20"}`}>
                   {ramPct.toFixed(0)}%
                 </Badge>
               } />
               <UsageBar pct={ramPct} />
-              <p className="text-[9px] text-muted-foreground/40 font-mono mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 ~{Math.floor(info.ram.total / (512 * 1024 * 1024))} simultaneous streams possible by RAM
               </p>
             </div>
 
-            {/* System Disk */}
-            <div className="console-pane rounded-lg p-4">
-              <SectionTitle icon={HardDrive} label="System Disk" />
+            <div className="rounded-xl border border-border/60 bg-card p-5">
+              <SectionHeader icon={HardDrive} label="System Disk" />
               {info.disk.available ? (
                 <>
-                  <div className="mb-2">
-                    <span className="font-display text-4xl text-primary leading-none" data-testid="text-disk-total">{fmt(info.disk.total)}</span>
+                  <div className="mb-3">
+                    <span className="text-4xl font-bold text-primary leading-none" data-testid="text-disk-total">{fmt(info.disk.total)}</span>
                   </div>
                   <StatRow label="Used" value={fmt(info.disk.used)} />
                   <StatRow label="Free" value={fmt(info.disk.free)} />
                   <StatRow label="Usage" value={
-                    <Badge variant="secondary" className={`text-[10px] ${diskPct >= 90 ? "bg-destructive/15 text-destructive border-destructive/30" : diskPct >= 70 ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" : "bg-primary/10 text-primary border-primary/20"}`}>
+                    <Badge variant="secondary" className={`text-xs ${diskPct >= 90 ? "bg-destructive/15 text-destructive border-destructive/30" : diskPct >= 70 ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" : "bg-primary/10 text-primary border-primary/20"}`}>
                       {diskPct.toFixed(0)}%
                     </Badge>
                   } />
                   <UsageBar pct={diskPct} />
                 </>
               ) : (
-                <p className="text-xs text-muted-foreground/40 font-mono">Disk stats unavailable</p>
+                <p className="text-sm text-muted-foreground">Disk stats unavailable</p>
               )}
             </div>
 
-            {/* Upload storage */}
-            <div className="console-pane rounded-lg p-4">
-              <SectionTitle icon={Radio} label="Upload Storage" />
-              <div className="mb-2">
-                <span className="font-display text-4xl text-primary leading-none" data-testid="text-uploads-total">{fmt(info.uploads.limit)}</span>
+            <div className="rounded-xl border border-border/60 bg-card p-5">
+              <SectionHeader icon={Radio} label="Upload Storage" />
+              <div className="mb-3">
+                <span className="text-4xl font-bold text-primary leading-none" data-testid="text-uploads-total">{fmt(info.uploads.limit)}</span>
               </div>
               <StatRow label="Used" value={fmt(info.uploads.used)} />
               <StatRow label="Free" value={fmt(info.uploads.limit - info.uploads.used)} />
               <StatRow label="Videos" value={`${info.uploads.videoCount} / ${info.uploads.maxVideos}`} />
               <StatRow label="Usage" value={
-                <Badge variant="secondary" className={`text-[10px] ${uploadsPct >= 90 ? "bg-destructive/15 text-destructive border-destructive/30" : uploadsPct >= 70 ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" : "bg-primary/10 text-primary border-primary/20"}`}>
+                <Badge variant="secondary" className={`text-xs ${uploadsPct >= 90 ? "bg-destructive/15 text-destructive border-destructive/30" : uploadsPct >= 70 ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" : "bg-primary/10 text-primary border-primary/20"}`}>
                   {uploadsPct.toFixed(0)}%
                 </Badge>
               } />
@@ -234,9 +229,8 @@ export default function SystemPage() {
             </div>
           </div>
 
-          {/* ── Environment checks ─────────────────────────── */}
-          <div className="console-pane rounded-lg p-4 sm:p-5">
-            <SectionTitle icon={Server} label="Environment Check" />
+          <div className="rounded-xl border border-border/60 bg-card p-5">
+            <SectionHeader icon={Server} label="Environment Check" />
             <CheckRow ok={info.ffmpeg.available} label={`FFmpeg ${info.ffmpeg.available ? info.ffmpeg.version : "— not found"}`} detail={info.ffmpeg.available ? "Required for video encoding and RTMP streaming" : "Install FFmpeg: sudo apt install ffmpeg"} />
             <CheckRow ok={true} label={`Node.js ${info.node.version}`} detail="Server runtime" />
             <CheckRow ok={info.cpu.cores >= 2} label={`${info.cpu.cores} CPU core${info.cpu.cores !== 1 ? "s" : ""} detected`} detail={info.cpu.cores >= 2 ? "Sufficient for multi-platform streaming" : "Minimum 2 cores recommended"} />
@@ -245,18 +239,17 @@ export default function SystemPage() {
             <CheckRow ok={info.uploads.videoCount < info.uploads.maxVideos} label={`Video slots: ${info.uploads.videoCount} / ${info.uploads.maxVideos} used`} detail={info.uploads.videoCount >= info.uploads.maxVideos ? "No more videos can be uploaded" : `${info.uploads.maxVideos - info.uploads.videoCount} slots remaining`} />
           </div>
 
-          {/* ── Requirements table ─────────────────────────── */}
-          <div className="console-pane rounded-lg p-4 sm:p-5">
-            <SectionTitle icon={Wifi} label="Multi-Platform Requirements" />
-            <p className="text-[10px] text-muted-foreground/50 font-mono mb-3">
+          <div className="rounded-xl border border-border/60 bg-card p-5">
+            <SectionHeader icon={Wifi} label="Multi-Platform Requirements" />
+            <p className="text-xs text-muted-foreground mb-4">
               Requirements per simultaneous stream count using libx264 veryfast preset. Highlighted rows match your hardware.
             </p>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs font-mono border-collapse">
+              <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="border-b border-primary/15">
-                    {["Streams","Resolution","CPU Cores","RAM","Upload","Fits You?"].map(h => (
-                      <th key={h} className="text-left py-2 px-2 text-[9px] text-muted-foreground/50 uppercase tracking-wider font-medium">{h}</th>
+                  <tr className="border-b border-border/50">
+                    {["Streams","Resolution","CPU Cores","RAM","Upload","Fits?"].map(h => (
+                      <th key={h} className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -268,16 +261,16 @@ export default function SystemPage() {
                     return (
                       <tr
                         key={i}
-                        className={`border-b border-primary/5 transition-colors ${fits ? "hover:bg-primary/5" : "opacity-40 hover:opacity-60"} ${isCurrent ? "ring-1 ring-inset ring-green-500/25" : ""}`}
+                        className={`border-b border-border/30 transition-colors ${fits ? "hover:bg-muted/20" : "opacity-40 hover:opacity-60"} ${isCurrent ? "ring-1 ring-inset ring-green-500/25" : ""}`}
                         data-testid={`row-capacity-${row.streams}-${row.res}`}
                       >
-                        <td className="py-2 px-2 font-bold text-foreground/80">{row.streams}×</td>
-                        <td className="py-2 px-2 text-muted-foreground/70">{row.res}</td>
-                        <td className="py-2 px-2 text-muted-foreground/70">{row.cores}</td>
-                        <td className="py-2 px-2 text-muted-foreground/70">{row.ram}</td>
-                        <td className="py-2 px-2 text-muted-foreground/70">{row.bw} Mbps</td>
-                        <td className="py-2 px-2">
-                          {fits ? <span className="text-green-500">✓</span> : <span className="text-muted-foreground/30">✗</span>}
+                        <td className="py-2.5 px-3 font-semibold text-foreground/80">{row.streams}x</td>
+                        <td className="py-2.5 px-3 text-muted-foreground">{row.res}</td>
+                        <td className="py-2.5 px-3 text-muted-foreground">{row.cores}</td>
+                        <td className="py-2.5 px-3 text-muted-foreground">{row.ram}</td>
+                        <td className="py-2.5 px-3 text-muted-foreground">{row.bw} Mbps</td>
+                        <td className="py-2.5 px-3">
+                          {fits ? <CheckCircle className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-muted-foreground/30" />}
                         </td>
                       </tr>
                     );
@@ -287,21 +280,20 @@ export default function SystemPage() {
             </div>
           </div>
 
-          {/* ── Performance tips ───────────────────────────── */}
-          <div className="console-pane rounded-lg p-4 sm:p-5">
-            <SectionTitle icon={AlertCircle} label="Performance Tips" />
-            <div className="space-y-2">
+          <div className="rounded-xl border border-border/60 bg-card p-5">
+            <SectionHeader icon={AlertCircle} label="Performance Tips" />
+            <div className="space-y-3">
               {[
                 "Use 720p profile instead of 1080p to halve CPU usage per stream.",
                 "Close other processes on the VPS while streaming to free up CPU headroom.",
                 "Pre-encode your videos to the target profile locally before uploading.",
                 "Use a VPS with dedicated CPU cores, not shared/burstable.",
-                "Ensure your upload bandwidth is at least 1.5× the total stream bitrate.",
+                "Ensure your upload bandwidth is at least 1.5x the total stream bitrate.",
                 "Enable auto-reconnect (built-in) to recover from transient platform disconnects.",
               ].map((tip, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="text-primary/50 font-mono text-[10px] mt-0.5 shrink-0">▸</span>
-                  <span className="text-[10px] text-muted-foreground/60 font-mono">{tip}</span>
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-primary mt-0.5 shrink-0">•</span>
+                  <span className="text-sm text-muted-foreground">{tip}</span>
                 </div>
               ))}
             </div>

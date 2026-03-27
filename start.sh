@@ -13,6 +13,16 @@ GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC
 export PORT=${PORT:-5000}
 export NODE_ENV=production
 
+# ── Check the client build exists ─────────────────────────────────────────────
+if [ ! -d "$SCRIPT_DIR/dist/public" ]; then
+    echo -e "${YELLOW}[!]${NC} Client not built yet. Running npm run build first..."
+    npm run build
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}[✗]${NC} Build failed. Fix the error above and try again."
+        exit 1
+    fi
+fi
+
 echo -e "${GREEN}"
 echo "╔═══════════════════════════════════════════════════════════╗"
 echo "║             STARTING ENDLESSCAST SERVER                   ║"

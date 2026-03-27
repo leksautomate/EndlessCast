@@ -19,13 +19,11 @@ import {
 
 function formatUptime(startedAt: string | null | undefined): string {
   if (!startedAt) return "00:00:00";
-  const start = new Date(startedAt).getTime();
-  const now = Date.now();
-  const diff = Math.floor((now - start) / 1000);
-  const hours = Math.floor(diff / 3600);
-  const minutes = Math.floor((diff % 3600) / 60);
-  const seconds = diff % 60;
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  const diff = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
+  const h = Math.floor(diff / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  const s = diff % 60;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
 function formatBytes(bytes: number): string {
@@ -36,15 +34,47 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
-function SectionHeader({ icon: Icon, label, accent }: { icon: React.ElementType; label: string; accent?: boolean }) {
+function PanelLabel({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
   return (
-    <div className="flex items-center gap-2.5 pb-3 mb-4 border-b border-border/50">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${accent ? "bg-green-500/10" : "bg-primary/10"}`}>
-        <Icon className={`w-4 h-4 ${accent ? "text-green-500" : "text-primary"}`} />
-      </div>
-      <h3 className={`text-sm font-semibold ${accent ? "text-green-500" : "text-foreground"}`}>
+    <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border/40">
+      <Icon className="w-3.5 h-3.5 text-muted-foreground/50" />
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/50">
         {label}
-      </h3>
+      </span>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  sub,
+  accent,
+  bar,
+}: {
+  label: string;
+  value: React.ReactNode;
+  sub?: React.ReactNode;
+  accent?: boolean;
+  bar?: { pct: number; danger: boolean };
+}) {
+  return (
+    <div className={`rounded-xl border p-4 ${accent ? "border-green-500/20 bg-green-500/5" : "border-border/50 bg-card"}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/40 mb-2">{label}</p>
+      <div className={`text-xl font-bold tabular-nums leading-none ${accent ? "text-green-400" : "text-foreground/80"}`}>
+        {value}
+      </div>
+      {sub && <div className="mt-1.5">{sub}</div>}
+      {bar && (
+        <div className="mt-2.5">
+          <div className="h-1 bg-muted/30 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${bar.danger ? "bg-destructive" : "bg-primary/60"}`}
+              style={{ width: `${bar.pct}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -96,37 +126,34 @@ export default function Overview() {
 
   return (
     <div className="min-h-full">
+      {/* Live banner */}
       {isLive && (
-        <div className="border-b border-green-500/20 bg-green-500/5 px-4 sm:px-6 py-4 slide-down">
+        <div className="border-b border-green-500/15 bg-green-500/5 px-4 sm:px-6 py-3 slide-down">
           <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
+                <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                 </span>
-                <span className="text-sm font-semibold text-green-500">Broadcasting</span>
+                <span className="text-xs font-semibold text-green-500 uppercase tracking-widest">Broadcasting</span>
               </div>
-              <div className="h-5 w-px bg-green-500/20" />
-              <div>
-                <span className="text-xs text-green-500/60 block leading-none mb-0.5">Uptime</span>
-                <span className="text-2xl font-bold text-green-400 tabular-nums leading-none" data-testid="text-uptime">
-                  {uptime}
-                </span>
-              </div>
+              <div className="h-4 w-px bg-green-500/20" />
+              <span className="text-xl font-bold text-green-400 tabular-nums leading-none" data-testid="text-uptime">
+                {uptime}
+              </span>
             </div>
-
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-5">
               <div className="text-center">
-                <span className="text-xs text-green-500/60 block leading-none mb-0.5">Channels</span>
-                <span className="text-2xl font-bold text-green-400 tabular-nums leading-none" data-testid="text-live-channels">
+                <p className="text-[10px] text-green-500/50 uppercase tracking-wider leading-none mb-1">Channels</p>
+                <span className="text-lg font-bold text-green-400 tabular-nums leading-none" data-testid="text-live-channels">
                   {liveEndpoints}/{enabledEndpoints.length}
                 </span>
               </div>
               {selectedVideo && (
                 <div className="hidden sm:block text-center">
-                  <span className="text-xs text-green-500/60 block leading-none mb-0.5">Now Playing</span>
-                  <span className="text-sm text-green-300 max-w-[200px] truncate block leading-none" data-testid="text-now-playing">
+                  <p className="text-[10px] text-green-500/50 uppercase tracking-wider leading-none mb-1">Now Playing</p>
+                  <span className="text-xs text-green-300 max-w-[200px] truncate block leading-none" data-testid="text-now-playing">
                     {selectedVideo.originalName}
                   </span>
                 </div>
@@ -137,117 +164,107 @@ export default function Overview() {
       )}
 
       <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-        <div className="grid lg:grid-cols-[1fr_288px] gap-5">
+        <div className="grid lg:grid-cols-[1fr_272px] gap-5">
 
-          {/* ── Left column: primary action ── */}
+          {/* ── Left column ── */}
           <div className="space-y-5 min-w-0">
-            <div className={`rounded-xl border p-5 ${
+
+            {/* Stream Control — hero panel */}
+            <div className={`rounded-xl border p-5 transition-all ${
               isLive
-                ? "border-green-500/25 bg-green-500/5 live-border-pulse"
-                : "border-border/60 bg-card"
+                ? "border-green-500/25 bg-green-500/[0.04] live-border-pulse"
+                : "border-border/50 bg-card"
             }`}>
-              <SectionHeader icon={Zap} label="Stream Control" accent={isLive} />
+              <PanelLabel icon={Zap} label="Stream Control" />
               <StreamingControls
                 selectedVideo={selectedVideo}
                 streamingState={streamingState}
                 enabledEndpointsCount={enabledEndpoints.length}
                 isStarting={startStreamMutation.isPending}
                 isStopping={stopStreamMutation.isPending}
-                onStart={(durationSeconds) => startStreamMutation.mutate(durationSeconds)}
+                onStart={(d) => startStreamMutation.mutate(d)}
                 onStop={() => stopStreamMutation.mutate()}
               />
             </div>
 
+            {/* Stream Health — appears when live */}
             {isLive && (
-              <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-5 slide-down">
-                <SectionHeader icon={Activity} label="Stream Health" accent />
+              <div className="rounded-xl border border-green-500/20 bg-green-500/[0.04] p-5 slide-down">
+                <PanelLabel icon={Activity} label="Stream Health" />
                 <StreamHealthMonitor endpoints={enabledEndpoints} streamingState={streamingState} />
               </div>
             )}
 
-            <div className="rounded-xl border border-border/60 bg-card p-5">
-              <SectionHeader icon={Camera} label="Extra Camera (PiP)" />
+            {/* Extra Camera */}
+            <div className="rounded-xl border border-border/50 bg-card p-5">
+              <PanelLabel icon={Camera} label="Extra Camera — PiP" />
               <ExtraCameraPanel videos={videos} streamingState={streamingState} />
             </div>
           </div>
 
-          {/* ── Right column: stats + endpoint status ── */}
+          {/* ── Right column ── */}
           <div className="space-y-4">
-            <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
-              <div className={`rounded-xl border p-4 ${isLive ? "border-green-500/20 bg-green-500/5" : "border-border/60 bg-card"}`}>
-                <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest mb-2">Status</p>
-                <div className="flex items-end justify-between gap-2">
+
+            {/* Stat cards — 2×2 grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard
+                label="Status"
+                value={
                   <span
-                    className={`text-2xl font-bold ${isLive ? "text-green-500" : "text-muted-foreground/40"}`}
+                    className={isLive ? "text-green-400" : "text-muted-foreground/30"}
                     data-testid="text-stream-status"
                   >
                     {isLive ? "LIVE" : "Offline"}
                   </span>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    isLive ? "bg-green-500/10" : "bg-muted/30"
-                  }`}>
-                    <Activity className={`w-3.5 h-3.5 ${isLive ? "text-green-500" : "text-muted-foreground/30"}`} />
-                  </div>
-                </div>
-              </div>
+                }
+                accent={isLive}
+              />
 
-              <div className="rounded-xl border border-border/60 bg-card p-4">
-                <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest mb-2">Uptime</p>
-                <div className="flex items-end justify-between gap-2">
-                  <span className="text-xl font-bold text-foreground/80 tabular-nums" data-testid="text-uptime-sm">
+              <StatCard
+                label="Uptime"
+                value={
+                  <span className="text-base" data-testid="text-uptime-sm">
                     {isLive ? uptime : "--:--"}
                   </span>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-                    <Clock className="w-3.5 h-3.5 text-primary/60" />
-                  </div>
-                </div>
-              </div>
+                }
+              />
 
-              <div className="rounded-xl border border-border/60 bg-card p-4">
-                <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest mb-2">Endpoints</p>
-                <div className="flex items-end justify-between gap-2">
-                  <span className="text-xl font-bold tabular-nums" data-testid="text-endpoints-count">
-                    <span className={isLive ? "text-green-500" : "text-foreground/70"}>{liveEndpoints}</span>
-                    <span className="text-muted-foreground/35 text-base">/{enabledEndpoints.length}</span>
+              <StatCard
+                label="Endpoints"
+                value={
+                  <span data-testid="text-endpoints-count">
+                    <span className={isLive ? "text-green-400" : "text-foreground/60"}>{liveEndpoints}</span>
+                    <span className="text-muted-foreground/25 text-sm font-normal">/{enabledEndpoints.length}</span>
                   </span>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-                    <Radio className="w-3.5 h-3.5 text-primary/60" />
-                  </div>
-                </div>
-              </div>
+                }
+                accent={isLive && liveEndpoints > 0}
+              />
 
-              <div className="rounded-xl border border-border/60 bg-card p-4">
-                <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest mb-2">Storage</p>
-                <div className="flex items-end justify-between gap-2">
+              <StatCard
+                label="Storage"
+                value={
                   <span
-                    className={`text-xl font-bold ${storagePct > 90 ? "text-destructive" : storagePct > 70 ? "text-yellow-500" : "text-foreground/70"}`}
+                    className={storagePct > 90 ? "text-destructive" : storagePct > 70 ? "text-yellow-500" : "text-foreground/70"}
                     data-testid="text-storage-percent"
                   >
                     {storagePct}%
                   </span>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-                    <Database className="w-3.5 h-3.5 text-primary/60" />
-                  </div>
-                </div>
-                {storageInfo && (
-                  <div className="mt-2.5">
-                    <div className="h-1 bg-muted/30 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${storagePct > 90 ? "bg-destructive" : "bg-primary/60"}`}
-                        style={{ width: `${storagePct}%` }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground/50 mt-1">
+                }
+                sub={
+                  storageInfo && (
+                    <p className="text-[10px] text-muted-foreground/35">
                       {formatBytes(storageInfo.used)} / {formatBytes(storageInfo.limit)}
                     </p>
-                  </div>
-                )}
-              </div>
+                  )
+                }
+                bar={storageInfo ? { pct: storagePct, danger: storagePct > 90 } : undefined}
+              />
             </div>
 
+            {/* Endpoint status */}
             {enabledEndpoints.length > 0 && (
-              <div className="rounded-xl border border-border/60 bg-card p-4">
-                <SectionHeader icon={Wifi} label="Endpoint Status" />
+              <div className="rounded-xl border border-border/50 bg-card p-4">
+                <PanelLabel icon={Wifi} label="Endpoint Status" />
                 <StatusDashboard endpoints={enabledEndpoints} streamingState={streamingState} />
               </div>
             )}

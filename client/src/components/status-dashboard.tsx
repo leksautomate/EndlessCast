@@ -1,5 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { SiYoutube, SiFacebook } from "react-icons/si";
 import type { RtmpEndpoint, StreamingState, RtmpPlatform, StreamStatus } from "@shared/schema";
@@ -17,212 +15,119 @@ function PlatformIcon({ platform, className }: { platform: RtmpPlatform; classNa
     case "facebook":
       return <SiFacebook className={className} style={{ color: platformInfo.facebook.color }} />;
     case "rumble":
-      return (
-        <div className={`font-bold ${className}`} style={{ color: platformInfo.rumble.color }}>
-          R
-        </div>
-      );
+      return <span className={`font-bold text-xs ${className}`} style={{ color: platformInfo.rumble.color }}>R</span>;
     case "odysee":
-      return (
-        <div className={`font-bold ${className}`} style={{ color: platformInfo.odysee.color }}>
-          O
-        </div>
-      );
+      return <span className={`font-bold text-xs ${className}`} style={{ color: platformInfo.odysee.color }}>O</span>;
     case "twitter":
-      return (
-        <div className={`font-bold ${className}`}>
-          X
-        </div>
-      );
+      return <span className={`font-bold text-xs ${className}`}>X</span>;
     default:
       return <Activity className={className} />;
   }
 }
 
-
-function getStatusBadge(status: StreamStatus["status"]) {
+function StatusDot({ status }: { status: StreamStatus["status"] }) {
   switch (status) {
     case "live":
       return (
-        <Badge variant="secondary" className="bg-status-online/10 text-status-online border-status-online/20">
-          <span className="relative flex h-2 w-2 mr-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-online opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-status-online"></span>
-          </span>
-          Live
-        </Badge>
+        <span className="relative flex h-2 w-2 flex-shrink-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+        </span>
       );
     case "connecting":
-      return (
-        <Badge variant="secondary" className="bg-status-away/10 text-status-away border-status-away/20">
-          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-          Connecting
-        </Badge>
-      );
-    case "error":
-      return (
-        <Badge variant="secondary" className="bg-status-busy/10 text-status-busy border-status-busy/20">
-          <AlertTriangle className="w-3 h-3 mr-1" />
-          Error
-        </Badge>
-      );
     case "reconnecting":
-      return (
-        <Badge variant="secondary" className="bg-status-away/10 text-status-away border-status-away/20">
-          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-          Reconnecting
-        </Badge>
-      );
-    case "stopped":
-      return (
-        <Badge variant="secondary" className="bg-muted text-muted-foreground">
-          Stopped
-        </Badge>
-      );
-    case "idle":
+      return <Loader2 className="w-2.5 h-2.5 text-yellow-500 animate-spin flex-shrink-0" />;
+    case "error":
+      return <AlertTriangle className="w-2.5 h-2.5 text-destructive flex-shrink-0" />;
     default:
-      return (
-        <Badge variant="secondary" className="bg-muted text-muted-foreground">
-          Idle
-        </Badge>
-      );
+      return <span className="w-2 h-2 rounded-full bg-muted-foreground/20 flex-shrink-0" />;
   }
 }
 
-export function StatusDashboard({
-  endpoints,
-  streamingState,
-}: StatusDashboardProps) {
+function statusLabel(status: StreamStatus["status"]) {
+  switch (status) {
+    case "live": return { text: "Live", color: "text-green-500" };
+    case "connecting": return { text: "Connecting", color: "text-yellow-500" };
+    case "reconnecting": return { text: "Reconnecting", color: "text-yellow-500" };
+    case "error": return { text: "Error", color: "text-destructive" };
+    case "stopped": return { text: "Stopped", color: "text-muted-foreground/40" };
+    default: return { text: "Idle", color: "text-muted-foreground/40" };
+  }
+}
+
+export function StatusDashboard({ endpoints, streamingState }: StatusDashboardProps) {
   const isStreaming = streamingState?.isStreaming || false;
   const endpointStatuses = streamingState?.endpointStatuses || [];
 
-  const getEndpointStatus = (endpointId: string): StreamStatus => {
-    const status = endpointStatuses.find(s => s.endpointId === endpointId);
-    return status || { endpointId, status: "idle" as const, reconnectCount: 0 };
-  };
-
-  const liveCount = endpointStatuses.filter(s => s.status === "live").length;
-  const errorCount = endpointStatuses.filter(s => s.status === "error").length;
+  const getEndpointStatus = (endpointId: string): StreamStatus =>
+    endpointStatuses.find(s => s.endpointId === endpointId) ||
+    { endpointId, status: "idle" as const, reconnectCount: 0 };
 
   return (
-    <Card>
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between gap-4">
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Stream Status
-          </CardTitle>
-          {isStreaming && (
-            <div className="flex items-center gap-2">
-              {liveCount > 0 && (
-                <Badge variant="secondary" className="bg-status-online/10 text-status-online">
-                  {liveCount} Live
-                </Badge>
+    <div className="space-y-2">
+      {endpoints.map((endpoint) => {
+        const epStatus = getEndpointStatus(endpoint.id);
+        const { text, color } = statusLabel(epStatus.status);
+        const isLive = epStatus.status === "live";
+
+        return (
+          <div
+            key={endpoint.id}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
+              isLive
+                ? "border-green-500/20 bg-green-500/5"
+                : epStatus.status === "error"
+                  ? "border-destructive/20 bg-destructive/5"
+                  : "border-border/40 bg-muted/10"
+            }`}
+            data-testid={`status-card-${endpoint.id}`}
+          >
+            {/* Platform icon */}
+            <div
+              className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${platformInfo[endpoint.platform].color}18` }}
+            >
+              <PlatformIcon platform={endpoint.platform} className="w-4 h-4" />
+            </div>
+
+            {/* Name */}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold truncate leading-snug" data-testid={`text-status-name-${endpoint.id}`}>
+                {endpoint.name}
+              </p>
+              {isLive && (epStatus.bitrate || epStatus.fps) && (
+                <p className="text-[10px] text-green-500/60 tabular-nums mt-0.5">
+                  {epStatus.bitrate ? `${(epStatus.bitrate / 1000).toFixed(0)} kbps` : ""}
+                  {epStatus.bitrate && epStatus.fps ? " · " : ""}
+                  {epStatus.fps ? `${epStatus.fps} fps` : ""}
+                </p>
               )}
-              {errorCount > 0 && (
-                <Badge variant="secondary" className="bg-status-busy/10 text-status-busy">
-                  {errorCount} Error{errorCount !== 1 ? "s" : ""}
-                </Badge>
+              {epStatus.status === "reconnecting" && epStatus.reconnectCount && (
+                <p className="text-[10px] text-yellow-500/60 mt-0.5">
+                  Attempt {epStatus.reconnectCount}/3
+                </p>
+              )}
+              {epStatus.status === "error" && epStatus.errorMessage && (
+                <p className="text-[10px] text-destructive/60 truncate mt-0.5">
+                  {epStatus.errorMessage}
+                </p>
               )}
             </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {endpoints.map((endpoint) => {
-            const status = getEndpointStatus(endpoint.id);
-            return (
-              <div
-                key={endpoint.id}
-                className={`p-4 rounded-lg border transition-all ${status.status === "live"
-                  ? "bg-status-online/5 border-status-online/30"
-                  : status.status === "error"
-                    ? "bg-status-busy/5 border-status-busy/30"
-                    : status.status === "connecting" || status.status === "reconnecting"
-                      ? "bg-status-away/5 border-status-away/30"
-                      : "bg-muted/30"
-                  }`}
-                data-testid={`status-card-${endpoint.id}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${platformInfo[endpoint.platform].color}15` }}
-                    >
-                      <PlatformIcon platform={endpoint.platform} className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm" data-testid={`text-status-name-${endpoint.id}`}>
-                        {endpoint.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {platformInfo[endpoint.platform].name}
-                      </p>
-                    </div>
-                  </div>
-                  {getStatusBadge(status.status)}
-                </div>
 
-                {/* Additional info when streaming */}
-                {status.status === "live" && (
-                  <div className="mt-3 pt-3 border-t border-status-online/20 grid grid-cols-2 gap-2">
-                    {status.bitrate && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">Bitrate</p>
-                        <p className="text-sm tabular-nums">{(status.bitrate / 1000).toFixed(0)} kbps</p>
-                      </div>
-                    )}
-                    {status.fps && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">FPS</p>
-                        <p className="text-sm tabular-nums">{status.fps}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Error message */}
-                {status.status === "error" && status.errorMessage && (
-                  <div className="mt-3 pt-3 border-t border-status-busy/20">
-                    <p className="text-xs text-status-busy">
-                      {status.errorMessage}
-                    </p>
-                  </div>
-                )}
-
-                {/* Reconnecting info */}
-                {status.status === "reconnecting" && (
-                  <div className="mt-3 pt-3 border-t border-status-away/20 space-y-1">
-                    {(status.reconnectCount ?? 0) > 0 && (
-                      <p className="text-xs text-status-away">
-                        Attempt {status.reconnectCount} of 3
-                      </p>
-                    )}
-                    {status.nextReconnectAt && (
-                      <p className="text-xs text-muted-foreground">
-                        Retrying at {new Date(status.nextReconnectAt).toLocaleTimeString()}
-                      </p>
-                    )}
-                    {status.errorMessage && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {status.errorMessage}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {!isStreaming && (
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            Start streaming to see real-time status for each endpoint
+            {/* Status indicator */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <StatusDot status={epStatus.status} />
+              <span className={`text-[11px] font-medium ${color}`}>{text}</span>
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        );
+      })}
+
+      {!isStreaming && endpoints.length > 0 && (
+        <p className="text-[11px] text-muted-foreground/30 text-center pt-1">
+          Start streaming to see live status
+        </p>
+      )}
+    </div>
   );
 }

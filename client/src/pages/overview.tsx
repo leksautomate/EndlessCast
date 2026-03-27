@@ -139,7 +139,11 @@ export default function Overview() {
                 <span className="text-xs font-semibold text-green-500 uppercase tracking-widest">Broadcasting</span>
               </div>
               <div className="h-4 w-px bg-green-500/20" />
-              <span className="text-xl font-bold text-green-400 tabular-nums leading-none" data-testid="text-uptime">
+              <span
+                className="font-mono tabular-nums leading-none tracking-widest text-green-400 px-3 py-1.5 rounded-md border border-green-500/20 bg-black/40 text-lg"
+                style={{ fontFamily: "'Courier New', 'JetBrains Mono', monospace", textShadow: "0 0 8px rgba(74,222,128,0.7)" }}
+                data-testid="text-uptime"
+              >
                 {uptime}
               </span>
             </div>
@@ -223,8 +227,12 @@ export default function Overview() {
               <StatCard
                 label="Uptime"
                 value={
-                  <span className="text-base" data-testid="text-uptime-sm">
-                    {isLive ? uptime : "--:--"}
+                  <span
+                    className="font-mono tabular-nums tracking-widest text-sm"
+                    style={{ fontFamily: "'Courier New', 'JetBrains Mono', monospace", textShadow: isLive ? "0 0 6px rgba(74,222,128,0.5)" : "none" }}
+                    data-testid="text-uptime-sm"
+                  >
+                    {isLive ? uptime : "--:--:--"}
                   </span>
                 }
               />

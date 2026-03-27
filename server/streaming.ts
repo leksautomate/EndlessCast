@@ -29,6 +29,7 @@ class StreamingService {
   private processes: Map<string, StreamProcess> = new Map();
   private reconnectStates: Map<string, ReconnectState> = new Map();
   private monitorInterval: NodeJS.Timeout | null = null;
+  private durationTimer: NodeJS.Timeout | null = null;
   private isStopping = false;
 
   async startStreaming(durationSeconds?: number): Promise<void> {
@@ -76,7 +77,16 @@ class StreamingService {
       }
     }
 
-    const limit = durationSeconds || 42900;
+    // Schedule auto-stop if a duration was explicitly requested
+    if (durationSeconds) {
+      if (this.durationTimer) clearTimeout(this.durationTimer);
+      this.durationTimer = setTimeout(() => {
+        console.log(`[duration] Scheduled stop after ${durationSeconds}s`);
+        this.stopStreaming();
+      }, durationSeconds * 1000);
+    }
+
+    const limit = 0; // Unused — FFmpeg now loops forever; duration is handled server-side
 
     let extraCameraPath: string | null = null;
     const extraCamera = state.extraCamera?.enabled ? state.extraCamera : null;
@@ -165,7 +175,6 @@ class StreamingService {
     }
 
     const commonOutputArgs = [
-      "-t", durationSeconds.toString(),
       "-r", "30",
       "-c:v", "libx264",
       "-preset", "ultrafast",
@@ -306,45 +315,6 @@ class StreamingService {
       const state = await storage.getStreamingState();
       if (!state.isStreaming) {
         await storage.updateEndpointStatus(endpoint.id, { status: "stopped" });
-        return;
-      }
-
-      const isCleanExit = code === 0 || code === 255;
-      if (isCleanExit) {
-        const freshEndpoint = await storage.getRtmpEndpoint(endpoint.id);
-        if (!freshEndpoint || !freshEndpoint.enabled) {
-          console.log(`[${endpoint.name}] Endpoint removed or disabled — not restarting`);
-          await storage.updateEndpointStatus(endpoint.id, { status: "stopped" });
-          return;
-        }
-
-        const resolvedVideoId = freshEndpoint.videoId ?? state.selectedVideoId;
-        if (!resolvedVideoId) {
-          console.warn(`[${endpoint.name}] No video assigned — not restarting`);
-          await storage.updateEndpointStatus(endpoint.id, { status: "error", errorMessage: "No video assigned" });
-          return;
-        }
-        const video = await storage.getVideo(resolvedVideoId);
-        if (!video) {
-          console.warn(`[${endpoint.name}] Video not found — not restarting`);
-          await storage.updateEndpointStatus(endpoint.id, { status: "error", errorMessage: "Video not found" });
-          return;
-        }
-        const freshVideoSource = path.join(process.cwd(), "uploads", video.filename);
-
-        console.log(`[${freshEndpoint.name}] Clean exit — restarting for continuous streaming`);
-        await storage.addLog({
-          level: "info",
-          message: `"${freshEndpoint.name}" cycle complete — restarting automatically`,
-          endpoint: freshEndpoint.name,
-        });
-        const rs = this.reconnectStates.get(endpoint.id);
-        if (rs?.timer) clearTimeout(rs.timer);
-        this.reconnectStates.delete(endpoint.id);
-        await this.startEndpointStream(
-          freshVideoSource, freshEndpoint, durationSeconds, false,
-          extraCameraPath, extraCamera,
-        );
         return;
       }
 
@@ -492,6 +462,11 @@ class StreamingService {
 
   async stopStreaming(): Promise<void> {
     this.isStopping = true;
+
+    if (this.durationTimer) {
+      clearTimeout(this.durationTimer);
+      this.durationTimer = null;
+    }
 
     for (const rs of Array.from(this.reconnectStates.values())) {
       if (rs.timer) clearTimeout(rs.timer);

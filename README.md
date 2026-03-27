@@ -56,12 +56,16 @@ Change these during installation or via **Settings** in the dashboard.
 
 ## Environment Variables
 
+Set these in `.env` in the project root (`.env` is gitignored — `git pull` will never overwrite it).
+
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | Server port | `5000` |
 | `ADMIN_USERNAME` | Admin login username | `admin` |
 | `PASSWORD_HASH` | bcrypt hash of password | hash of `admin123` |
 | `NODE_ENV` | Runtime environment | `production` |
+
+See `.env.example` for a reference template.
 
 ---
 
@@ -162,6 +166,30 @@ This is expected — FFmpeg does real-time video encoding per destination. Solut
 ---
 
 ## Changelog
+
+### v1.5.0 — 2026-03-27
+
+**Security**
+
+- Added authentication to 5 previously unprotected API endpoints (PATCH endpoints, video selection, email/Telegram test, theme settings)
+- Fixed path traversal vulnerability in thumbnail deletion — file operations now confined to `uploads/thumbnails/`
+
+**UI Craft Pass**
+
+- JetBrains Mono + glow effects now active by default — terminal identity is on, not opt-in
+- Theme settings (terminal font, glow, scanlines) now wired to DOM data attributes so CSS reacts immediately
+- Overview page: two-column layout — streaming controls are the hero, stats move to a support column
+- Sidebar: left-border accent on active nav item, animated ping on live status, logo has more visual mass
+- Sidebar border shifts to green when broadcasting — interface feels different when live
+- Stat card labels: uppercase + tracked + dimmed (hierarchy through typography, not just size)
+- Wider surface tonal gap between background and card; live border pulse strengthened
+
+**Config**
+
+- `.env` removed from git tracking — `git pull` no longer resets port or credentials on update
+- `.env.example` added as a reference template for new installs
+
+---
 
 ### v1.4.0 — 2026-03-27
 

@@ -6,12 +6,15 @@ import type { RtmpEndpoint, ExtraCamera } from "@shared/schema";
 import { outputProfileInfo } from "@shared/schema";
 import path from "path";
 
-const MAX_RECONNECT_ATTEMPTS = 3;
-const RECONNECT_DELAY_MS = 5000;
+// Reconnect forever — stream only stops when the user says so or a preset duration expires
+const INITIAL_RECONNECT_DELAY_MS = 5_000;   // 5 seconds
+const MAX_RECONNECT_DELAY_MS = 120_000;     // cap at 2 minutes
+const STABLE_STREAM_THRESHOLD_MS = 30_000;  // 30s of stable streaming resets the backoff
 
 interface StreamProcess {
   endpointId: string;
   ffmpegProcess: ChildProcess;
+  startedAt: number;  // timestamp when this process was spawned
 }
 
 interface ReconnectState {
@@ -175,14 +178,13 @@ class StreamingService {
     }
 
     const commonOutputArgs = [
+      "-nostdin",          // prevent FFmpeg from hanging on stdin
       "-r", "30",
       "-c:v", "libx264",
       "-preset", "ultrafast",
-      "-tune", "zerolatency",
       "-b:v", profile.bitrate,
       "-maxrate", profile.maxrate,
       "-bufsize", profile.bufsize,
-      "-x264opts", "nal-hrd=cbr:force-cfr=1",
       "-pix_fmt", "yuv420p",
       "-g", "60",
       "-keyint_min", "60",
@@ -191,6 +193,7 @@ class StreamingService {
       "-b:a", "160k",
       "-ar", "44100",
       "-f", "flv",
+      "-flvflags", "no_duration_filesize",  // prevent FLV timestamp issues on long streams
       rtmpFullUrl,
     ];
 
@@ -215,21 +218,32 @@ class StreamingService {
       ].join(";");
 
       return [
-        "-re", "-stream_loop", "-1", "-i", videoSource,
-        "-re", "-stream_loop", "-1", "-i", extraCameraPath,
+        "-re", "-stream_loop", "-1", "-fflags", "+genpts", "-i", videoSource,
+        "-re", "-stream_loop", "-1", "-fflags", "+genpts", "-i", extraCameraPath,
         "-filter_complex", filterComplex,
         "-map", "[out]",
         "-map", "0:a",
+        "-rtmp_live", "live",
         ...commonOutputArgs,
       ];
     } else {
       // No extra camera — simple -vf filter
       return [
-        "-re", "-stream_loop", "-1", "-i", videoSource,
+        "-re", "-stream_loop", "-1", "-fflags", "+genpts", "-i", videoSource,
         "-vf", mainScaleFilter,
+        "-rtmp_live", "live",
         ...commonOutputArgs,
       ];
     }
+  }
+
+  /**
+   * Calculate reconnect delay with exponential backoff.
+   * 5s → 10s → 20s → 40s → 80s → 120s (capped)
+   */
+  private getReconnectDelay(attempt: number): number {
+    const delay = INITIAL_RECONNECT_DELAY_MS * Math.pow(2, attempt - 1);
+    return Math.min(delay, MAX_RECONNECT_DELAY_MS);
   }
 
   private async startEndpointStream(
@@ -286,21 +300,6 @@ class StreamingService {
         endpoint: endpoint.name,
         detail: error.message,
       });
-      const existingRs = this.reconnectStates.get(endpoint.id);
-      const attemptsUsed = existingRs?.attempts ?? 0;
-      const canRetry = attemptsUsed < MAX_RECONNECT_ATTEMPTS;
-
-      if (!canRetry) {
-        await storage.updateEndpointStatus(endpoint.id, {
-          status: "error",
-          errorMessage: error.message,
-        });
-        const emailSettings = await storage.getEmailSettings();
-        if (emailSettings?.enabled && emailSettings?.notifyOnError) {
-          await emailService.sendErrorAlert(emailSettings, endpoint.name, error.message, attemptsUsed + 1);
-        }
-        await telegramService.notifyStreamError(endpoint.name, error.message);
-      }
     });
 
     ffmpegProcess.on("exit", async (code) => {
@@ -318,35 +317,25 @@ class StreamingService {
         return;
       }
 
+      // Always reconnect — stream should never die unless the user stops it
       const errorMsg = `Process exited with code ${code}`;
-      const existingRs = this.reconnectStates.get(endpoint.id);
-      const attemptsUsed = existingRs?.attempts ?? 0;
-      const canRetry = attemptsUsed < MAX_RECONNECT_ATTEMPTS;
-
       await storage.addLog({
-        level: canRetry ? "warn" : "error",
-        message: canRetry
-          ? `"${endpoint.name}" disconnected (exit ${code}) — will reconnect`
-          : `"${endpoint.name}" failed permanently (exit ${code}) after ${attemptsUsed + 1} attempt(s)`,
+        level: "warn",
+        message: `"${endpoint.name}" disconnected (exit ${code}) — will reconnect`,
         endpoint: endpoint.name,
         detail: errorMsg,
       });
-
-      if (!canRetry) {
-        await storage.updateEndpointStatus(endpoint.id, { status: "error", errorMessage: errorMsg });
-        const emailSettings = await storage.getEmailSettings();
-        if (emailSettings?.enabled && emailSettings?.notifyOnError) {
-          await emailService.sendErrorAlert(emailSettings, endpoint.name, errorMsg, attemptsUsed + 1);
-        }
-        await telegramService.notifyStreamError(endpoint.name, errorMsg);
-      }
 
       await this.scheduleReconnect(
         videoSource, endpoint, durationSeconds, extraCameraPath, extraCamera,
       );
     });
 
-    this.processes.set(endpoint.id, { endpointId: endpoint.id, ffmpegProcess });
+    this.processes.set(endpoint.id, {
+      endpointId: endpoint.id,
+      ffmpegProcess,
+      startedAt: Date.now(),
+    });
 
     // Keep "reconnecting" status through reconnect spawns; only reset to "connecting" initially
     if (!isReconnect) {
@@ -379,6 +368,20 @@ class StreamingService {
         }
       }
     }, 5000);
+
+    // After the stream has been stable for STABLE_STREAM_THRESHOLD_MS, reset the backoff entirely
+    setTimeout(async () => {
+      const proc = this.processes.get(endpoint.id);
+      if (proc && !proc.ffmpegProcess.killed) {
+        // Stream survived long enough — reset reconnect state so future drops start fresh
+        const rs = this.reconnectStates.get(endpoint.id);
+        if (rs) {
+          if (rs.timer) clearTimeout(rs.timer);
+          this.reconnectStates.delete(endpoint.id);
+          console.log(`[${endpoint.name}] Stream stable for ${STABLE_STREAM_THRESHOLD_MS / 1000}s — reconnect backoff reset`);
+        }
+      }
+    }, STABLE_STREAM_THRESHOLD_MS);
   }
 
   private async scheduleReconnect(
@@ -407,23 +410,16 @@ class StreamingService {
 
     rs.attempts += 1;
 
-    if (rs.attempts > MAX_RECONNECT_ATTEMPTS) {
-      console.warn(`[${endpoint.name}] Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Giving up.`);
-      await storage.updateEndpointStatus(endpoint.id, {
-        status: "error",
-        errorMessage: `Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) exceeded`,
-        nextReconnectAt: undefined,
-      });
-      this.reconnectStates.delete(endpoint.id);
-      return;
-    }
+    // Never give up — always reconnect
+    const delayMs = this.getReconnectDelay(rs.attempts);
 
-    const nextReconnectAt = new Date(Date.now() + RECONNECT_DELAY_MS).toISOString();
-    console.log(`[${endpoint.name}] Reconnect attempt ${rs.attempts}/${MAX_RECONNECT_ATTEMPTS} in ${RECONNECT_DELAY_MS / 1000}s`);
+    console.log(`[${endpoint.name}] Reconnect attempt ${rs.attempts} in ${delayMs / 1000}s`);
+
+    const nextReconnectAt = new Date(Date.now() + delayMs).toISOString();
 
     await storage.addLog({
       level: "warn",
-      message: `"${endpoint.name}" reconnect attempt ${rs.attempts}/${MAX_RECONNECT_ATTEMPTS} in ${RECONNECT_DELAY_MS / 1000}s`,
+      message: `"${endpoint.name}" reconnect attempt ${rs.attempts} in ${delayMs / 1000}s`,
       endpoint: endpoint.name,
     });
 
@@ -432,6 +428,22 @@ class StreamingService {
       reconnectCount: rs.attempts,
       nextReconnectAt,
     });
+
+    // Notify on repeated failures (every 10 attempts)
+    if (rs.attempts % 10 === 0) {
+      const emailSettings = await storage.getEmailSettings();
+      if (emailSettings?.enabled && emailSettings?.notifyOnError) {
+        await emailService.sendErrorAlert(
+          emailSettings, endpoint.name,
+          `Stream has been reconnecting for ${rs.attempts} attempts`,
+          rs.attempts,
+        );
+      }
+      await telegramService.notifyStreamError(
+        endpoint.name,
+        `Still reconnecting after ${rs.attempts} attempts (delay: ${delayMs / 1000}s)`,
+      );
+    }
 
     if (rs.timer) clearTimeout(rs.timer);
 
@@ -457,7 +469,7 @@ class StreamingService {
         capturedRs.videoPath, latestEndpoint, capturedRs.durationSeconds, true,
         capturedRs.extraCameraPath, capturedRs.extraCameraConfig,
       );
-    }, RECONNECT_DELAY_MS);
+    }, delayMs);
   }
 
   async stopStreaming(): Promise<void> {
@@ -504,12 +516,7 @@ class StreamingService {
         return;
       }
 
-      const hasActiveProcesses = this.processes.size > 0;
-      const hasPendingReconnects = this.reconnectStates.size > 0;
-
-      if (!hasActiveProcesses && !hasPendingReconnects) {
-        await this.stopStreaming();
-      }
+      // Don't auto-stop when reconnecting — the stream is retrying and should keep going
     }, 5000);
   }
 

@@ -13,15 +13,7 @@ import { emailService } from "./email";
 import { authService } from "./auth";
 import { telegramService } from "./telegram";
 import { insertRtmpEndpointSchema, MAX_STORAGE_BYTES, MAX_VIDEOS, insertEmailSettingsSchema, insertThemeSettingsSchema, insertTelegramSettingsSchema } from "@shared/schema";
-import {
-  getYouTubeAuthUrl,
-  exchangeCodeForTokens,
-  getConnectedEmail,
-  getValidAccessToken,
-  updateBroadcastMetadata,
-  updateVideoTags,
-  uploadThumbnailToYouTube,
-} from "./youtube-api";
+
 
 const execAsync = promisify(exec);
 
@@ -55,7 +47,6 @@ const upload = multer({
     fileSize: MAX_STORAGE_BYTES,
     fieldSize: 200 * 1024 * 1024,
   },
-  highWaterMark: 16 * 1024 * 1024, // 16 MB chunks for faster streaming
   fileFilter: (_req, file, cb) => {
     const allowedTypes = ["video/mp4", "video/quicktime", "video/x-matroska"];
     const allowedExts = [".mp4", ".mov", ".mkv"];
@@ -473,152 +464,7 @@ export async function registerRoutes(
   });
 
   // Start streaming
-  // ============ YOUTUBE API ROUTES ============
 
-  // Get YouTube API settings (credentials only, no tokens exposed)
-  app.get("/api/youtube/settings", requireAuth, async (_req: Request, res: Response) => {
-    try {
-      const settings = await storage.getYouTubeApiSettings();
-      if (!settings) return res.json(null);
-      const safe = {
-        clientId: settings.clientId,
-        clientSecret: settings.clientSecret ? "****" : "",
-        connected: !!(settings.refreshToken),
-        connectedEmail: settings.connectedEmail,
-      };
-      res.json(safe);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch YouTube settings" });
-    }
-  });
-
-  // Save YouTube API credentials
-  app.post("/api/youtube/settings", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const { clientId, clientSecret } = req.body;
-      if (!clientId || !clientSecret) {
-        return res.status(400).json({ message: "clientId and clientSecret are required" });
-      }
-      const existing = await storage.getYouTubeApiSettings();
-      const secretToSave = clientSecret === "****" ? (existing?.clientSecret ?? "") : clientSecret;
-      await storage.updateYouTubeApiSettings({ clientId, clientSecret: secretToSave });
-      res.json({ message: "Credentials saved" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to save YouTube settings" });
-    }
-  });
-
-  // Get OAuth authorization URL
-  app.get("/api/youtube/auth-url", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const settings = await storage.getYouTubeApiSettings();
-      if (!settings?.clientId) {
-        return res.status(400).json({ message: "Save your Client ID and Secret first" });
-      }
-      const redirectUri = `${req.protocol}://${req.get("host")}/api/youtube/callback`;
-      const url = await getYouTubeAuthUrl(settings.clientId, redirectUri);
-      res.json({ url, redirectUri });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to generate auth URL" });
-    }
-  });
-
-  // OAuth callback — exchange code for tokens
-  app.get("/api/youtube/callback", async (req: Request, res: Response) => {
-    try {
-      const { code, error } = req.query as { code?: string; error?: string };
-      if (error || !code) {
-        return res.send(`<html><body><script>window.opener?.postMessage({type:'youtube-auth',success:false,error:'${error || "No code"}'},'*');window.close();</script></body></html>`);
-      }
-      const settings = await storage.getYouTubeApiSettings();
-      if (!settings?.clientId || !settings.clientSecret) {
-        return res.send("<html><body><p>Error: No credentials configured.</p></body></html>");
-      }
-      const redirectUri = `${req.protocol}://${req.get("host")}/api/youtube/callback`;
-      const tokens = await exchangeCodeForTokens(settings.clientId, settings.clientSecret, code, redirectUri);
-      const email = await getConnectedEmail(tokens.accessToken);
-      await storage.updateYouTubeApiSettings({
-        refreshToken: tokens.refreshToken,
-        accessToken: tokens.accessToken,
-        accessTokenExpiresAt: tokens.expiresAt,
-        connectedEmail: email,
-      });
-      return res.send(`<html><body><script>window.opener?.postMessage({type:'youtube-auth',success:true,email:'${email}'},'*');window.close();</script></body></html>`);
-    } catch (error: any) {
-      console.error("YouTube OAuth callback error:", error);
-      return res.send(`<html><body><script>window.opener?.postMessage({type:'youtube-auth',success:false,error:'${error.message}'},'*');window.close();</script></body></html>`);
-    }
-  });
-
-  // Disconnect YouTube account
-  app.delete("/api/youtube/disconnect", requireAuth, async (_req: Request, res: Response) => {
-    try {
-      await storage.updateYouTubeApiSettings({
-        refreshToken: undefined,
-        accessToken: undefined,
-        accessTokenExpiresAt: undefined,
-        connectedEmail: undefined,
-      });
-      res.json({ message: "Disconnected" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to disconnect" });
-    }
-  });
-
-  // Manually sync metadata to YouTube for a specific endpoint
-  app.post("/api/youtube/sync/:endpointId", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const { endpointId } = req.params;
-      const endpoint = await storage.getRtmpEndpoint(endpointId);
-      if (!endpoint || endpoint.platform !== "youtube") {
-        return res.status(404).json({ message: "YouTube endpoint not found" });
-      }
-      if (!endpoint.youtubeBroadcastId) {
-        return res.status(400).json({ message: "No Broadcast ID set on this endpoint" });
-      }
-
-      const ytSettings = await storage.getYouTubeApiSettings();
-      if (!ytSettings?.refreshToken) {
-        return res.status(400).json({ message: "YouTube account not connected. Connect in Settings → YouTube." });
-      }
-
-      const { accessToken, expiresAt } = await getValidAccessToken(
-        ytSettings.clientId, ytSettings.clientSecret,
-        ytSettings.refreshToken, ytSettings.accessToken, ytSettings.accessTokenExpiresAt
-      );
-      await storage.updateYouTubeApiSettings({ accessToken, accessTokenExpiresAt: expiresAt });
-
-      const results: string[] = [];
-
-      if (endpoint.streamTitle || endpoint.streamDescription) {
-        await updateBroadcastMetadata(
-          accessToken,
-          endpoint.youtubeBroadcastId,
-          endpoint.streamTitle ?? "",
-          endpoint.streamDescription ?? ""
-        );
-        results.push("title/description updated");
-      }
-
-      if (endpoint.streamTags && endpoint.streamTags.length > 0) {
-        await updateVideoTags(accessToken, endpoint.youtubeBroadcastId, endpoint.streamTags);
-        results.push("tags updated");
-      }
-
-      if (endpoint.thumbnailPath) {
-        const fullPath = path.join(process.cwd(), endpoint.thumbnailPath.replace(/^\//, ""));
-        if (fs.existsSync(fullPath)) {
-          await uploadThumbnailToYouTube(accessToken, endpoint.youtubeBroadcastId, fullPath);
-          results.push("thumbnail uploaded");
-        }
-      }
-
-      res.json({ message: results.length ? `Synced: ${results.join(", ")}` : "Nothing to sync" });
-    } catch (error: any) {
-      console.error("YouTube sync error:", error);
-      res.status(500).json({ message: error.message || "Sync failed" });
-    }
-  });
 
   app.post("/api/streaming/start", requireAuth, async (req: Request, res: Response) => {
     try {
@@ -637,45 +483,6 @@ export async function registerRoutes(
 
       if (enabledEndpoints.length === 0) {
         return res.status(400).json({ message: "No RTMP endpoints configured" });
-      }
-
-      // Auto-sync YouTube metadata for any YouTube endpoints that have broadcast IDs
-      const ytSettings = await storage.getYouTubeApiSettings();
-      if (ytSettings?.refreshToken) {
-        const youtubeEndpoints = enabledEndpoints.filter(
-          e => e.platform === "youtube" && e.youtubeBroadcastId
-        );
-        if (youtubeEndpoints.length > 0) {
-          try {
-            const { accessToken, expiresAt } = await getValidAccessToken(
-              ytSettings.clientId, ytSettings.clientSecret,
-              ytSettings.refreshToken, ytSettings.accessToken, ytSettings.accessTokenExpiresAt
-            );
-            await storage.updateYouTubeApiSettings({ accessToken, accessTokenExpiresAt: expiresAt });
-
-            for (const ep of youtubeEndpoints) {
-              try {
-                if (ep.streamTitle || ep.streamDescription) {
-                  await updateBroadcastMetadata(accessToken, ep.youtubeBroadcastId!, ep.streamTitle ?? "", ep.streamDescription ?? "");
-                }
-                if (ep.streamTags && ep.streamTags.length > 0) {
-                  await updateVideoTags(accessToken, ep.youtubeBroadcastId!, ep.streamTags);
-                }
-                if (ep.thumbnailPath) {
-                  const fullPath = path.join(process.cwd(), ep.thumbnailPath.replace(/^\//, ""));
-                  if (fs.existsSync(fullPath)) {
-                    await uploadThumbnailToYouTube(accessToken, ep.youtubeBroadcastId!, fullPath);
-                  }
-                }
-                console.log(`[youtube] Synced metadata for "${ep.name}"`);
-              } catch (syncErr: any) {
-                console.warn(`[youtube] Metadata sync failed for "${ep.name}":`, syncErr.message);
-              }
-            }
-          } catch (tokenErr: any) {
-            console.warn("[youtube] Could not refresh token for pre-stream sync:", tokenErr.message);
-          }
-        }
       }
 
       const { durationSeconds } = req.body;

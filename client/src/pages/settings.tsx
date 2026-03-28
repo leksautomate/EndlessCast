@@ -20,11 +20,8 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  Link2,
-  LogOut,
-  RefreshCw,
 } from "lucide-react";
-import { SiTelegram, SiYoutube } from "react-icons/si";
+import { SiTelegram } from "react-icons/si";
 import {
   insertEmailSettingsSchema,
   insertTelegramSettingsSchema,
@@ -42,11 +39,6 @@ export default function Settings({ onLogout }: SettingsProps) {
   const [testingEmail, setTestingEmail] = useState(false);
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [showTelegramToken, setShowTelegramToken] = useState(false);
-  const [ytClientId, setYtClientId] = useState("");
-  const [ytClientSecret, setYtClientSecret] = useState("");
-  const [ytSaving, setYtSaving] = useState(false);
-  const [ytConnecting, setYtConnecting] = useState(false);
-  const [ytDisconnecting, setYtDisconnecting] = useState(false);
   const { theme, setTheme, settings: themeSettings } = useTheme();
 
   const { data: emailSettings } = useQuery({
@@ -69,95 +61,6 @@ export default function Settings({ onLogout }: SettingsProps) {
       return res.json();
     },
   });
-
-  const { data: ytSettings, refetch: refetchYt } = useQuery({
-    queryKey: ["/api/youtube/settings"],
-    queryFn: async () => {
-      const sessionId = localStorage.getItem("sessionId");
-      const res = await fetch("/api/youtube/settings", {
-        headers: sessionId ? { "x-session-id": sessionId } : {},
-      });
-      if (!res.ok) return null;
-      return res.json() as Promise<{ clientId: string; clientSecret: string; connected: boolean; connectedEmail?: string } | null>;
-    },
-  });
-
-  useEffect(() => {
-    if (ytSettings) {
-      setYtClientId(ytSettings.clientId || "");
-      setYtClientSecret(ytSettings.clientSecret || "");
-    }
-  }, [ytSettings]);
-
-  const handleYtSave = async () => {
-    setYtSaving(true);
-    try {
-      const sessionId = localStorage.getItem("sessionId");
-      const res = await fetch("/api/youtube/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(sessionId ? { "x-session-id": sessionId } : {}) },
-        body: JSON.stringify({ clientId: ytClientId, clientSecret: ytClientSecret }),
-      });
-      if (!res.ok) throw new Error("Failed to save");
-      toast({ title: "Credentials saved" });
-      refetchYt();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setYtSaving(false);
-    }
-  };
-
-  const handleYtConnect = async () => {
-    setYtConnecting(true);
-    try {
-      const sessionId = localStorage.getItem("sessionId");
-      const res = await fetch("/api/youtube/auth-url", {
-        headers: sessionId ? { "x-session-id": sessionId } : {},
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed");
-      }
-      const { url, redirectUri } = await res.json();
-      toast({ title: "Opening Google OAuth…", description: `Redirect URI: ${redirectUri}` });
-      const popup = window.open(url, "_blank", "width=500,height=600");
-      const handler = (e: MessageEvent) => {
-        if (e.data?.type === "youtube-auth") {
-          window.removeEventListener("message", handler);
-          if (e.data.success) {
-            toast({ title: "YouTube Connected", description: `Signed in as ${e.data.email}` });
-            refetchYt();
-          } else {
-            toast({ title: "Connection Failed", description: e.data.error || "OAuth error", variant: "destructive" });
-          }
-          setYtConnecting(false);
-        }
-      };
-      window.addEventListener("message", handler);
-      setTimeout(() => { window.removeEventListener("message", handler); setYtConnecting(false); }, 120_000);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-      setYtConnecting(false);
-    }
-  };
-
-  const handleYtDisconnect = async () => {
-    setYtDisconnecting(true);
-    try {
-      const sessionId = localStorage.getItem("sessionId");
-      await fetch("/api/youtube/disconnect", {
-        method: "DELETE",
-        headers: sessionId ? { "x-session-id": sessionId } : {},
-      });
-      toast({ title: "YouTube Disconnected" });
-      refetchYt();
-    } catch {
-      toast({ title: "Error", variant: "destructive" });
-    } finally {
-      setYtDisconnecting(false);
-    }
-  };
 
   const emailForm = useForm<InsertEmailSettings>({
     resolver: zodResolver(insertEmailSettingsSchema),
@@ -287,16 +190,12 @@ export default function Settings({ onLogout }: SettingsProps) {
     <div className="p-4 sm:p-6">
       <div className="max-w-3xl mx-auto space-y-5">
         <Tabs defaultValue="theme" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-card border border-border/60 h-auto rounded-lg overflow-hidden p-0">
+          <TabsList className="grid w-full grid-cols-3 bg-card border border-border/60 h-auto rounded-lg overflow-hidden p-0">
             <TabsTrigger value="theme" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs py-2.5 rounded-none">
               <Palette className="w-3.5 h-3.5 mr-1.5" />
               Theme
             </TabsTrigger>
-            <TabsTrigger value="youtube" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs py-2.5 rounded-none border-x border-border/40">
-              <SiYoutube className="w-3.5 h-3.5 mr-1.5" style={{ color: "currentColor" }} />
-              YouTube
-            </TabsTrigger>
-            <TabsTrigger value="telegram" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs py-2.5 rounded-none border-r border-border/40">
+            <TabsTrigger value="telegram" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary text-xs py-2.5 rounded-none border-x border-border/40">
               <SiTelegram className="w-3.5 h-3.5 mr-1.5" />
               Telegram
             </TabsTrigger>
@@ -305,126 +204,6 @@ export default function Settings({ onLogout }: SettingsProps) {
               Email
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="youtube" className="mt-5">
-            <div className="rounded-xl border border-border/60 bg-card">
-              <div className="px-5 py-4 border-b border-border/50 flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-                  <SiYoutube className="w-4 h-4 text-red-500" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold">YouTube API</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Automatically sync title, description, tags, and thumbnail to your broadcasts
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-5 space-y-5">
-                {/* Connection status */}
-                {ytSettings?.connected ? (
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-green-500/20 bg-green-500/5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-                      </span>
-                      <div>
-                        <p className="text-xs font-semibold text-green-500">Connected</p>
-                        {ytSettings.connectedEmail && (
-                          <p className="text-[11px] text-muted-foreground/60">{ytSettings.connectedEmail}</p>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                      onClick={handleYtDisconnect}
-                      disabled={ytDisconnecting}
-                    >
-                      <LogOut className="w-3 h-3 mr-1.5" />
-                      Disconnect
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 p-3 rounded-lg border border-border/40 bg-muted/20">
-                    <span className="w-2 h-2 rounded-full bg-muted-foreground/20 flex-shrink-0" />
-                    <p className="text-xs text-muted-foreground/60">Not connected — enter credentials below and click Connect</p>
-                  </div>
-                )}
-
-                {/* Setup instructions */}
-                <div className="rounded-lg bg-muted/20 border border-border/40 p-4 space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground">Setup (one-time)</p>
-                  <ol className="text-xs text-muted-foreground/70 space-y-1 list-decimal list-inside">
-                    <li>Go to <strong>console.cloud.google.com</strong> → Create a project</li>
-                    <li>Enable <strong>YouTube Data API v3</strong></li>
-                    <li>Create <strong>OAuth 2.0 credentials</strong> (Desktop or Web app)</li>
-                    <li>Add this as an authorized redirect URI: <code className="text-primary/80 bg-primary/5 px-1 rounded">{window.location.origin}/api/youtube/callback</code></li>
-                    <li>Copy your <strong>Client ID</strong> and <strong>Client Secret</strong> below</li>
-                  </ol>
-                </div>
-
-                {/* Credentials */}
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Client ID</label>
-                    <Input
-                      value={ytClientId}
-                      onChange={(e) => setYtClientId(e.target.value)}
-                      placeholder="123456789-abc...apps.googleusercontent.com"
-                      className="text-sm bg-muted/20 border-border/50"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Client Secret</label>
-                    <Input
-                      type="password"
-                      value={ytClientSecret}
-                      onChange={(e) => setYtClientSecret(e.target.value)}
-                      placeholder="GOCSPX-..."
-                      className="text-sm bg-muted/20 border-border/50"
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleYtSave}
-                      disabled={ytSaving || !ytClientId}
-                      className="h-8 text-xs"
-                    >
-                      {ytSaving ? <RefreshCw className="w-3 h-3 mr-1.5 animate-spin" /> : null}
-                      Save Credentials
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleYtConnect}
-                      disabled={ytConnecting || !ytSettings?.clientId}
-                      className="h-8 text-xs bg-red-600 hover:bg-red-500 text-white border-0"
-                    >
-                      {ytConnecting
-                        ? <RefreshCw className="w-3 h-3 mr-1.5 animate-spin" />
-                        : <Link2 className="w-3 h-3 mr-1.5" />
-                      }
-                      {ytSettings?.connected ? "Re-connect Account" : "Connect YouTube Account"}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* How it works */}
-                <div className="border-t border-border/40 pt-4">
-                  <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
-                    Once connected, go to <strong>Destinations</strong> → Edit any YouTube endpoint → fill in Title, Description, Tags, Thumbnail, and Broadcast ID.
-                    All metadata syncs automatically each time you click Start Broadcast.
-                    You can also sync manually via the endpoint settings.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
 
           <TabsContent value="theme" className="mt-5">
             <div className="rounded-xl border border-border/60 bg-card">
@@ -476,8 +255,7 @@ export default function Settings({ onLogout }: SettingsProps) {
                             className="w-4 h-4 rounded-full flex-shrink-0 ring-2 ring-offset-1"
                             style={{
                               backgroundColor: preset.primary,
-                              ringColor: isActive ? preset.primary : "transparent",
-                              ringOffsetColor: preset.bg,
+                              outlineColor: isActive ? preset.primary : "transparent",
                               boxShadow: isActive ? `0 0 8px ${preset.primary}60` : "none",
                             }}
                           />

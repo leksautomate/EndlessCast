@@ -2,29 +2,23 @@ import type { TelegramSettings } from "@shared/schema";
 import { storage } from "./storage";
 
 class TelegramService {
-  private async sendMessage(settings: TelegramSettings, message: string): Promise<boolean> {
-    try {
-      const url = `https://api.telegram.org/bot${settings.botToken}/sendMessage`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: settings.chatId,
-          text: message,
-          parse_mode: "HTML",
-        }),
-      });
+  private async sendMessage(settings: TelegramSettings, message: string): Promise<void> {
+    const url = `https://api.telegram.org/bot${settings.botToken}/sendMessage`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: settings.chatId,
+        text: message,
+        parse_mode: "HTML",
+      }),
+    });
 
-      if (!response.ok) {
-        const error = await response.json();
-        console.error("Telegram API error:", error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Failed to send Telegram message:", error);
-      return false;
+    if (!response.ok) {
+      const error = await response.json();
+      const description = error?.description || "Unknown Telegram API error";
+      console.error("Telegram API error:", error);
+      throw new Error(description);
     }
   }
 
@@ -39,7 +33,7 @@ class TelegramService {
 
 Status: LIVE`;
 
-    await this.sendMessage(settings, message);
+    try { await this.sendMessage(settings, message); } catch (e) { console.error("Telegram notify error:", e); }
   }
 
   async notifyStreamStop(): Promise<void> {
@@ -52,7 +46,7 @@ Status: LIVE`;
 
 Status: OFFLINE`;
 
-    await this.sendMessage(settings, message);
+    try { await this.sendMessage(settings, message); } catch (e) { console.error("Telegram notify error:", e); }
   }
 
   async notifyStreamError(endpointName: string, errorMessage: string): Promise<void> {
@@ -67,16 +61,16 @@ Status: OFFLINE`;
 
 Status: ERROR`;
 
-    await this.sendMessage(settings, message);
+    try { await this.sendMessage(settings, message); } catch (e) { console.error("Telegram notify error:", e); }
   }
 
-  async testConnection(settings: TelegramSettings): Promise<boolean> {
+  async testConnection(settings: TelegramSettings): Promise<void> {
     const message = `<b>EndlessCast Test</b>
 
 Connection successful!
 Your Telegram notifications are now configured.`;
 
-    return this.sendMessage(settings, message);
+    await this.sendMessage(settings, message);
   }
 
   async notifyServerCrash(errorType: string, errorMessage: string): Promise<void> {
@@ -91,7 +85,7 @@ Your Telegram notifications are now configured.`;
 
 Status: CRITICAL - Server is restarting...`;
 
-    await this.sendMessage(settings, message);
+    try { await this.sendMessage(settings, message); } catch (e) { console.error("Telegram notify error:", e); }
   }
 
   async notifyServerStart(): Promise<void> {
@@ -104,7 +98,7 @@ Status: CRITICAL - Server is restarting...`;
 
 Status: ONLINE - EndlessCast is ready`;
 
-    await this.sendMessage(settings, message);
+    try { await this.sendMessage(settings, message); } catch (e) { console.error("Telegram notify error:", e); }
   }
 }
 

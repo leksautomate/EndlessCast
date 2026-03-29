@@ -134,7 +134,10 @@ export default function Videos() {
       }));
 
       newJobs.forEach((j, i) => filesRef.current.set(j.id, selectedFiles[i]));
-      setUploadQueue((prev) => [...prev, ...newJobs]);
+      // Update the ref synchronously so drainQueue sees the new jobs immediately
+      // (React batches state updates, so setUploadQueue's updater won't have run yet)
+      queueRef.current = [...queueRef.current, ...newJobs];
+      setUploadQueue(() => queueRef.current);
       drainQueue();
     },
     [drainQueue, setUploadQueue]

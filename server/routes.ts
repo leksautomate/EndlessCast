@@ -795,12 +795,8 @@ export async function registerRoutes(
         settingsToTest = { ...settingsToTest, botToken: storedSettings.botToken };
       }
 
-      const success = await telegramService.testConnection(settingsToTest);
-      if (success) {
-        res.json({ message: "Telegram connection successful" });
-      } else {
-        res.status(400).json({ message: "Failed to connect to Telegram. Check your bot token and chat ID." });
-      }
+      await telegramService.testConnection(settingsToTest);
+      res.json({ message: "Telegram connection successful" });
     } catch (error: any) {
       console.error("Telegram test error:", error);
       res.status(500).json({ message: error.message || "Telegram test failed" });

@@ -477,7 +477,7 @@ Only if you installed pm2 just for EndlessCast:
 pm2 delete all
 npm uninstall -g pm2
 ```
-
+### Update
 ```bash
 cd ~/EndlessCast && git pull && npm run build && pm2 restart endlesscast
 ```

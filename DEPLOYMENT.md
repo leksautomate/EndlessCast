@@ -478,4 +478,10 @@ pm2 delete all
 npm uninstall -g pm2
 ```
 
+```bash
+cd ~/EndlessCast && git pull && npm run build && pm2 restart endlesscast
+```
+
+
+
 That's it. Your system is clean.

@@ -4,7 +4,7 @@
 
 Stream your videos continuously to YouTube Live, Facebook Live, Rumble, Odysee, Twitter/X, and custom RTMP destinations — automatically, without any manual intervention.
 
-[![GitHub](https://img.shields.io/badge/GitHub-leksautomate%2FEndlessCast-181717?logo=github)](https://github.com/leksautomate/EndlessCast)
+[![GitHub](https://img.shields.io/badge/GitHub-leksmedias%2FEndlessCast-181717?logo=github)](https://github.com/leksmedias/EndlessCast)
 
 ---
 
@@ -258,5 +258,5 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## Support & Issues
 
-- **Repository:** https://github.com/leksautomate/EndlessCast
-- **Issues:** https://github.com/leksautomate/EndlessCast/issues
+- **Repository:** https://github.com/leksmedias/EndlessCast
+- **Issues:** https://github.com/leksmedias/EndlessCast/issues

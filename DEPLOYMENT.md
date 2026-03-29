@@ -38,7 +38,7 @@ sudo apt update && sudo apt install -y ffmpeg git
 ### 2. Clone and install
 
 ```bash
-git clone https://github.com/leksautomate/EndlessCast.git
+git clone https://github.com/leksmedias/EndlessCast.git
 cd EndlessCast
 chmod +x install.sh
 ./install.sh
@@ -222,7 +222,7 @@ ffmpeg -version
 Open **Command Prompt** or **PowerShell** (not as Administrator):
 
 ```cmd
-git clone https://github.com/leksautomate/EndlessCast.git
+git clone https://github.com/leksmedias/EndlessCast.git
 cd EndlessCast
 npm install
 ```
@@ -340,7 +340,7 @@ git --version
 ### 3. Clone and install
 
 ```bash
-git clone https://github.com/leksautomate/EndlessCast.git
+git clone https://github.com/leksmedias/EndlessCast.git
 cd EndlessCast
 npm install
 ```

@@ -3,14 +3,14 @@
 ## Quick Install (One-Line Command)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/leksautomate/EndlessCast/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
+curl -fsSL https://raw.githubusercontent.com/leksmedias/EndlessCast/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
 ```
 
 Or step by step:
 
 ```bash
 # Download the installation script
-curl -fsSL https://raw.githubusercontent.com/leksautomate/EndlessCast/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/leksmedias/EndlessCast/main/install.sh -o install.sh
 
 # Make it executable
 chmod +x install.sh
@@ -25,7 +25,7 @@ chmod +x install.sh
 
 ```bash
 # Clone the repository
-git clone https://github.com/leksautomate/EndlessCast.git
+git clone https://github.com/leksmedias/EndlessCast.git
 
 # Navigate to the directory
 cd EndlessCast
@@ -351,5 +351,5 @@ sudo systemctl restart endlesscast
 
 ## Support
 
-- **Repository:** https://github.com/leksautomate/EndlessCast
-- **Issues:** https://github.com/leksautomate/EndlessCast/issues
+- **Repository:** https://github.com/leksmedias/EndlessCast
+- **Issues:** https://github.com/leksmedias/EndlessCast/issues

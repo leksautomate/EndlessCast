@@ -14,6 +14,8 @@ import { authService } from "./auth";
 import { telegramService } from "./telegram";
 import { insertRtmpEndpointSchema, MAX_STORAGE_BYTES, MAX_VIDEOS, insertEmailSettingsSchema, insertThemeSettingsSchema, insertTelegramSettingsSchema } from "@shared/schema";
 
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB chunks
+
 
 const execAsync = promisify(exec);
 
@@ -170,6 +172,140 @@ export async function registerRoutes(
       res.json(videos);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch videos" });
+    }
+  });
+
+  // ============ CHUNKED UPLOAD ROUTES (Protected) ============
+
+  // Stale session cleanup — runs every 10 min, expires sessions older than 24h
+  setInterval(() => {
+    storage.cleanupExpiredSessions(Date.now() - 24 * 60 * 60 * 1000);
+  }, 10 * 60 * 1000);
+
+  // 1. Init upload session
+  app.post("/api/uploads/init", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { originalName, mimeType, totalSize } = req.body;
+      if (!originalName || !mimeType || typeof totalSize !== "number") {
+        return res.status(400).json({ message: "Missing required fields: originalName, mimeType, totalSize" });
+      }
+
+      const allowedTypes = ["video/mp4", "video/quicktime", "video/x-matroska"];
+      const allowedExts = [".mp4", ".mov", ".mkv"];
+      const ext = path.extname(originalName).toLowerCase();
+      if (!allowedTypes.includes(mimeType) && !allowedExts.includes(ext)) {
+        return res.status(400).json({ message: "Invalid file type. Only MP4, MOV, and MKV files are allowed." });
+      }
+
+      const storageInfo = await storage.getStorageInfo();
+      if (storageInfo.used + totalSize > MAX_STORAGE_BYTES) {
+        return res.status(400).json({ message: "Storage limit exceeded. Delete some videos to free up space." });
+      }
+
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const filename = `video-${uniqueSuffix}${ext}`;
+      const tempPath = path.join(uploadsDir, filename + ".tmp");
+      fs.writeFileSync(tempPath, Buffer.alloc(0)); // create empty file
+
+      const session = storage.createUploadSession({ filename, originalName, mimeType, totalSize, bytesReceived: 0, tempPath });
+      res.json({ sessionId: session.id, chunkSize: CHUNK_SIZE });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to create upload session" });
+    }
+  });
+
+  // 2. Upload one chunk (raw binary body)
+  app.post(
+    "/api/uploads/:sessionId/chunk",
+    requireAuth,
+    express.raw({ type: "application/octet-stream", limit: "6mb" }),
+    async (req: Request, res: Response) => {
+      try {
+        const session = storage.getUploadSession(req.params.sessionId);
+        if (!session) return res.status(404).json({ message: "Upload session not found or expired" });
+
+        const rangeHeader = req.headers["content-range"];
+        if (!rangeHeader) return res.status(400).json({ message: "Missing Content-Range header" });
+
+        const m = rangeHeader.match(/bytes (\d+)-(\d+)\/(\d+)/);
+        if (!m) return res.status(400).json({ message: "Invalid Content-Range header" });
+
+        const start = parseInt(m[1]);
+        if (start !== session.bytesReceived) {
+          // Tell client where we actually are so it can resume correctly
+          return res.status(409).json({ message: "Chunk out of order", bytesReceived: session.bytesReceived });
+        }
+
+        const chunk = req.body as Buffer;
+        if (!Buffer.isBuffer(chunk) || chunk.length === 0) {
+          return res.status(400).json({ message: "Empty chunk body" });
+        }
+
+        fs.appendFileSync(session.tempPath, chunk);
+        const newBytes = session.bytesReceived + chunk.length;
+        storage.updateUploadSessionBytes(session.id, newBytes);
+
+        res.json({ bytesReceived: newBytes });
+      } catch (err: any) {
+        res.status(500).json({ message: err.message || "Chunk upload failed" });
+      }
+    }
+  );
+
+  // 3. Get session status (for resume after page reload)
+  app.get("/api/uploads/:sessionId", requireAuth, async (req: Request, res: Response) => {
+    const session = storage.getUploadSession(req.params.sessionId);
+    if (!session) return res.status(404).json({ message: "Session not found" });
+    res.json({ sessionId: session.id, originalName: session.originalName, totalSize: session.totalSize, bytesReceived: session.bytesReceived });
+  });
+
+  // 4. Complete upload — finalize file, run ffprobe, create video record
+  app.post("/api/uploads/:sessionId/complete", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const session = storage.deleteUploadSession(req.params.sessionId);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+
+      if (session.bytesReceived !== session.totalSize) {
+        try { fs.unlinkSync(session.tempPath); } catch { /* ignore */ }
+        return res.status(400).json({ message: `Upload incomplete: got ${session.bytesReceived} of ${session.totalSize} bytes` });
+      }
+
+      const finalPath = path.join(uploadsDir, session.filename);
+      fs.renameSync(session.tempPath, finalPath);
+
+      // Final storage check (race condition guard)
+      const storageInfo = await storage.getStorageInfo();
+      if (storageInfo.used + session.totalSize > MAX_STORAGE_BYTES) {
+        try { fs.unlinkSync(finalPath); } catch { /* ignore */ }
+        return res.status(400).json({ message: "Storage limit exceeded." });
+      }
+
+      const duration = await getVideoDuration(finalPath);
+      const video = await storage.addVideo({
+        filename: session.filename,
+        originalName: session.originalName,
+        size: session.totalSize,
+        duration,
+        mimeType: session.mimeType,
+        uploadedAt: new Date().toISOString(),
+      });
+
+      res.json(video);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to complete upload" });
+    }
+  });
+
+  // 5. Cancel upload — delete temp file and session
+  app.delete("/api/uploads/:sessionId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const session = storage.deleteUploadSession(req.params.sessionId);
+      if (session) {
+        try { fs.unlinkSync(session.tempPath); } catch { /* already gone */ }
+      }
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to cancel upload" });
     }
   });
 

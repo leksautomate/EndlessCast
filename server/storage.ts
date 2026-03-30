@@ -75,6 +75,18 @@ export interface IStorage {
   getStorageInfo(): Promise<StorageInfo>;
 }
 
+// Upload sessions — transient, never persisted to disk
+export interface UploadSession {
+  id: string;
+  filename: string;       // final filename (without .tmp)
+  originalName: string;
+  mimeType: string;
+  totalSize: number;
+  bytesReceived: number;
+  tempPath: string;       // absolute path to .tmp file
+  createdAt: number;      // Date.now()
+}
+
 export class MemStorage implements IStorage {
   private videos: Map<string, Video>;
   private rtmpEndpoints: Map<string, RtmpEndpoint>;
@@ -87,6 +99,7 @@ export class MemStorage implements IStorage {
   private youtubeApiSettings: YouTubeApiSettings | null;
   private logs: LogEntry[] = [];
   private saveTimeout: NodeJS.Timeout | null = null;
+  private uploadSessions: Map<string, UploadSession> = new Map();
 
   constructor() {
     this.videos = new Map();
@@ -401,6 +414,38 @@ export class MemStorage implements IStorage {
     this.youtubeApiSettings = { ...(this.youtubeApiSettings ?? { clientId: "", clientSecret: "" }), ...settings };
     this.scheduleSave();
     return this.youtubeApiSettings;
+  }
+
+  // Upload session operations (not persisted)
+  createUploadSession(data: Omit<UploadSession, "id" | "createdAt">): UploadSession {
+    const id = randomUUID();
+    const session: UploadSession = { ...data, id, createdAt: Date.now() };
+    this.uploadSessions.set(id, session);
+    return session;
+  }
+
+  getUploadSession(id: string): UploadSession | undefined {
+    return this.uploadSessions.get(id);
+  }
+
+  updateUploadSessionBytes(id: string, bytesReceived: number): void {
+    const s = this.uploadSessions.get(id);
+    if (s) s.bytesReceived = bytesReceived;
+  }
+
+  deleteUploadSession(id: string): UploadSession | undefined {
+    const s = this.uploadSessions.get(id);
+    this.uploadSessions.delete(id);
+    return s;
+  }
+
+  cleanupExpiredSessions(olderThanMs: number): void {
+    Array.from(this.uploadSessions.entries()).forEach(([id, s]) => {
+      if (s.createdAt < olderThanMs) {
+        this.uploadSessions.delete(id);
+        try { fs.unlinkSync(s.tempPath); } catch { /* already gone */ }
+      }
+    });
   }
 
   // Storage info

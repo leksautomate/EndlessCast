@@ -40,7 +40,7 @@ EndlessCast is a full-stack TypeScript app: React frontend served by an Express 
 
 **State management**: TanStack Query for all server state. No global client state store.
 
-**UI**: shadcn/ui primitives + Tailwind CSS + Framer Motion. Theme system (7 presets: matrix/cyber/neon/blood/ocean/amber/violet) managed by `components/theme-provider.tsx` and persisted via `/api/settings/theme`.
+**UI**: shadcn/ui primitives + Tailwind CSS + Framer Motion. Theme system (8 presets: ocean/crimson/emerald/amber/violet/arctic/sunset/slate) managed by `components/theme-provider.tsx` and persisted via `/api/settings/theme`.
 
 ### Shared (`shared/schema.ts`)
 
@@ -75,8 +75,7 @@ Configured in `.env`:
 
 ## UI Design Conventions
 
-See `design_guidelines.md` for the full terminal aesthetic spec. Key points:
-- Font: VT323 (monospace terminal style) for headings/labels
-- 7 color themes, all CSS-variable-based via `theme-provider.tsx`
-- Scanline/glow/dot-grid effects are intentional design elements, not bugs
+- Font: Inter for all UI text (no monospace fonts)
+- 8 color themes (HSL CSS variables), all managed via `theme-provider.tsx`; scanlines are an optional toggle (`data-scanlines` attribute), not always-on
 - Prefer existing shadcn/ui components from `client/src/components/ui/` before creating new ones
+- Note: `design_guidelines.md` describes the old terminal aesthetic and is outdated — the UI now uses a clean modern dark theme

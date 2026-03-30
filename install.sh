@@ -303,6 +303,9 @@ fi
 # ── nohup fallback ────────────────────────────────────────────────────────────
 echo -e "${CYAN}[>]${NC} Using nohup (background mode)..."
 
+# Remove CPU time limit so FFmpeg child processes are not killed by SIGXCPU
+ulimit -t unlimited 2>/dev/null || true
+
 PID_FILE="$SCRIPT_DIR/endlesscast.pid"
 
 if [ -f "$PID_FILE" ]; then
@@ -447,6 +450,8 @@ Restart=always
 RestartSec=5
 StandardOutput=append:$CURRENT_DIR/endlesscast.log
 StandardError=append:$CURRENT_DIR/endlesscast.log
+LimitCPU=infinity
+LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
